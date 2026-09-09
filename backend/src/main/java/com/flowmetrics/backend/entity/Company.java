@@ -36,6 +36,21 @@ public class Company {
     public Company() {
     }
 
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+
+        if (isTemplate == null) {
+            isTemplate = false;
+        }
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
     public Long getId() {
         return id;
     }
