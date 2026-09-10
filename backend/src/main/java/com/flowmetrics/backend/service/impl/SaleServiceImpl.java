@@ -48,6 +48,7 @@ public class SaleServiceImpl implements SaleService {
 	}
 
     @Override
+    @Transactional(readOnly = true)
     public List<SaleDTO> findAll() {
         return saleRepository.findAll()
                 .stream()
@@ -56,6 +57,7 @@ public class SaleServiceImpl implements SaleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SaleDTO> findByCompany(Long companyId) {
         return saleRepository.findByCompanyId(companyId)
                 .stream()
@@ -64,6 +66,7 @@ public class SaleServiceImpl implements SaleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SaleDTO findById(Long id) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada con id " + id));

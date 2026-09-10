@@ -7,4 +7,6 @@ import com.flowmetrics.backend.entity.Customer;
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
 
     List<Customer> findByCompanyId(Long companyId);
+    
+    long countByCompanyIdAndIsActiveTrue(Long companyId);
 }
