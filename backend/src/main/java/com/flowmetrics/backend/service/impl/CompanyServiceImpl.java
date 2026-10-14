@@ -2,6 +2,7 @@ package com.flowmetrics.backend.service.impl;
 
 import java.util.List;
 import com.flowmetrics.backend.exception.ResourceNotFoundException;
+import com.flowmetrics.backend.exception.TemplateCompanyProtectedException;
 
 import org.springframework.stereotype.Service;
 
@@ -57,6 +58,10 @@ public class CompanyServiceImpl implements CompanyService {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa no encontrada con id " + id));
 
+        if (Boolean.TRUE.equals(company.getIsTemplate())) {
+            throw new TemplateCompanyProtectedException("No se puede modificar la empresa plantilla.");
+        }
+
         company.setName(dto.getName());
         company.setIndustry(dto.getIndustry());
         company.setCountry(dto.getCountry());
@@ -72,6 +77,10 @@ public class CompanyServiceImpl implements CompanyService {
 
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa no encontrada con id " + id));
+
+        if (Boolean.TRUE.equals(company.getIsTemplate())) {
+            throw new TemplateCompanyProtectedException("No se puede eliminar la empresa plantilla.");
+        }
 
         companyRepository.delete(company);
     }

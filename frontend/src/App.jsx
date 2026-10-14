@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { DemoSessionProvider } from './context/DemoSessionContext';
+import { DemoSessionProvider } from './context/DemoSessionProvider';
 import AppLayout from './components/layout/AppLayout';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';

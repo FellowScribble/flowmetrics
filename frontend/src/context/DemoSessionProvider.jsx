@@ -1,7 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getCurrentSession, startDemoSession } from '../api/demo';
-
-const DemoSessionContext = createContext(null);
+import { DemoSessionContext } from './DemoSessionContext';
 
 export function DemoSessionProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -28,8 +27,4 @@ export function DemoSessionProvider({ children }) {
       {children}
     </DemoSessionContext.Provider>
   );
-}
-
-export function useDemoSession() {
-  return useContext(DemoSessionContext);
 }

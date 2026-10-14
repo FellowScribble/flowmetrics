@@ -42,7 +42,7 @@ function Customers() {
       }
       resetForm();
       loadData();
-    } catch (error) {
+    } catch {
       alert('Ha ocurrido un error al guardar el cliente.');
     }
   }

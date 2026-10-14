@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BarChart3, 
   Users, 
@@ -7,21 +8,160 @@ import {
   ShoppingCart, 
   TrendingUp, 
   ShieldCheck, 
-  Zap, 
-  CheckCircle2, 
   ArrowRight, 
   Sparkles, 
   Code2, 
   X, 
-  Layers, 
   Activity, 
-  DollarSign 
+  Mail,
+  ExternalLink
 } from 'lucide-react';
+
+// Componente de Canvas para la cuadrícula interactiva de puntos (Efecto Aceternity UI adaptado)
+function HeroDotGridCanvas() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+
+    let width = (canvas.width = canvas.offsetWidth);
+    let height = (canvas.height = canvas.offsetHeight);
+
+    const handleResize = () => {
+      if (!canvas) return;
+      width = canvas.width = canvas.offsetWidth;
+      height = canvas.height = canvas.offsetHeight;
+      initDots();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    const spacing = 32;
+    let dots = [];
+
+    class Dot {
+      constructor(x, y) {
+        this.baseX = x;
+        this.baseY = y;
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.size = 4;
+        this.alpha = Math.random() * 0.4 + 0.15;
+        this.twinkleSpeed = Math.random() * 0.02 + 0.005;
+        this.twinkleOffset = Math.random() * Math.PI * 2;
+      }
+
+      update(mouse, time) {
+        // Movimiento muelle hacia la base
+        const dx = this.baseX - this.x;
+        const dy = this.baseY - this.y;
+        
+        this.vx += dx * 0.08;
+        this.vy += dy * 0.08;
+        this.vx *= 0.82; // Fricción
+        this.vy *= 0.82;
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Interacción con el ratón (efecto repulsión sutil)
+        if (mouse.x !== null && mouse.y !== null) {
+          const mdx = this.x - mouse.x;
+          const mdy = this.y - mouse.y;
+          const dist = Math.sqrt(mdx * mdx + mdy * mdy);
+          const maxDist = 110;
+
+          if (dist < maxDist) {
+            const force = (1 - dist / maxDist) * 18;
+            const angle = Math.atan2(mdy, mdx);
+            this.x += Math.cos(angle) * force;
+            this.y += Math.sin(angle) * force;
+          }
+        }
+
+        // Parpadeo aleatorio elegante
+        this.currentAlpha = this.alpha + Math.sin(time * this.twinkleSpeed + this.twinkleOffset) * 0.15;
+        this.currentAlpha = Math.max(0.05, Math.min(0.7, this.currentAlpha));
+      }
+
+      draw(ctx) {
+        ctx.fillStyle = `rgba(255, 255, 255, 0.9)`; // Tono morado elegante
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const initDots = () => {
+      dots = [];
+      for (let x = spacing / 2; x < width; x += spacing) {
+        for (let y = spacing / 2; y < height; y += spacing) {
+          dots.push(new Dot(x, y));
+        }
+      }
+    };
+
+    initDots();
+
+    const mouse = { x: null, y: null };
+
+    const handleMouseMove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = e.clientX - rect.left;
+      mouse.y = e.clientY - rect.top;
+    };
+
+    const handleMouseLeave = () => {
+      mouse.x = null;
+      mouse.y = null;
+    };
+
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+
+    let time = 0;
+    const render = () => {
+      time += 1;
+      ctx.clearRect(0, 0, width, height);
+
+      for (let i = 0; i < dots.length; i++) {
+        dots[i].update(mouse, time);
+        dots[i].draw(ctx);
+      }
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (canvas) {
+        canvas.removeEventListener('mousemove', handleMouseMove);
+        canvas.removeEventListener('mouseleave', handleMouseLeave);
+      }
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      className="absolute inset-0 w-full h-full pointer-events-auto -z-10 opacity-75"
+    />
+  );
+}
 
 export default function Landing() {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalSubmitted, setModalSubmitted] = useState(false);
+  const [isCardExpanded, setIsCardExpanded] = useState(false);
 
   // Estado para el formulario simulado
   const [formData, setFormData] = useState({ name: '', company: '', email: '', password: '' });
@@ -38,480 +178,630 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-black text-zinc-100 selection:bg-purple-950 selection:text-white font-sans antialiased overflow-x-hidden">
       
-      {/* AVISO STICKY DE DEMOSTRACIÓN (Fijo arriba) */}
-      <div className="sticky top-0 z-50 bg-indigo-950/90 backdrop-blur-md border-b border-indigo-800/50 px-4 py-2 text-xs md:text-sm text-indigo-200 text-center font-medium shadow-sm transition-all flex items-center justify-center gap-2">
-        <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+      {/* AVISO STICKY DE DEMOSTRACIÓN (Discreto y coherente con Linear) */}
+      <div className="sticky top-0 z-50 bg-black/85 backdrop-blur-md border-b border-purple-950/40 px-4 py-2.5 text-xs text-zinc-400 text-center font-medium transition-all flex items-center justify-center gap-2">
+        <Sparkles className="w-3.5 h-3.5 text-purple-500 shrink-0" />
         <span>
-          <strong>Proyecto de Portfolio:</strong> Demostración técnica de SaaS empresarial. No hay registros reales ni cobros activos.
+          <strong className="text-zinc-200">Portfolio Showcase:</strong> Demostración de desarrollo web (Mini-ERP). Sin pasarelas de pago ni cuentas reales.
         </span>
       </div>
 
       {/* NAVBAR */}
-      <header className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between border-b border-slate-800/60">
+      <header className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between border-b border-zinc-900">
         <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <BarChart3 className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center shadow-inner shadow-purple-950/20">
+            <BarChart3 className="w-4 h-4 text-purple-400" />
           </div>
-          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+          <span className="text-lg font-semibold tracking-tight text-white">
             FlowMetrics
           </span>
         </div>
 
-        <nav className="hidden md:flex items-center gap-8 text-sm text-slate-400 font-medium">
-          <a href="#features" className="hover:text-slate-100 transition-colors">Características</a>
-          <a href="#preview" className="hover:text-slate-100 transition-colors">Vista previa</a>
-          <a href="#pricing" className="hover:text-slate-100 transition-colors">Precios</a>
-          <a href="#testimonials" className="hover:text-slate-100 transition-colors">Testimonios</a>
+        <nav className="hidden md:flex items-center gap-8 text-sm text-zinc-400 font-medium">
+          <a href="#features" className="hover:text-purple-300 transition-colors">Características</a>
+          <a href="#pricing" className="hover:text-purple-300 transition-colors">Precios</a>
+          <a href="#testimonials" className="hover:text-purple-300 transition-colors">Testimonios</a>
         </nav>
 
         <div className="flex items-center gap-4">
           <button 
             onClick={handleOpenModal}
-            className="hidden sm:inline-flex text-sm font-medium text-slate-300 hover:text-white transition-colors"
+            className="hidden sm:inline-flex text-sm font-medium text-zinc-400 hover:text-purple-300 transition-colors cursor-pointer"
           >
             Comenzar gratis
           </button>
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(88, 28, 135, 0.4)" }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
             onClick={() => navigate('/demo/dashboard')}
-            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-950 to-purple-900 hover:from-purple-900 hover:to-purple-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg shadow-purple-950/40 cursor-pointer border border-purple-800/40"
           >
             Ver demo
-            <ArrowRight className="w-4 h-4" />
-          </button>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </motion.button>
         </div>
       </header>
 
-      {/* HERO SECTION */}
-      <section className="relative pt-20 pb-28 md:pt-32 md:pb-36 max-w-7xl mx-auto px-6 text-center">
-        {/* Efecto de luz de fondo */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] md:w-[600px] h-[350px] md:h-[600px] bg-indigo-600/15 blur-[120px] rounded-full pointer-events-none -z-10" />
+      {/* HERO SECTION CON CANVAS DE PUNTOS INTERACTIVO */}
+      <section className="relative pt-20 pb-32 md:pt-28 md:pb-40 max-w-7xl mx-auto px-6 overflow-hidden">
+        {/* Canvas interactivo de puntos que reaccionan al ratón y parpadean */}
+        <HeroDotGridCanvas />
 
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-indigo-400 mb-8 shadow-inner">
-          <Code2 className="w-3.5 h-3.5" />
-          <span>React + Vite + Tailwind CSS · Portfolio Showcase</span>
+        {/* Sutil halo de luz de fondo con toque morado oscuro elegante */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] md:w-[850px] h-[350px] md:h-[550px] bg-gradient-to-tr from-purple-950/25 via-zinc-900/10 to-transparent blur-[160px] rounded-full pointer-events-none -z-10" />
+
+        <div className="text-center max-w-4xl mx-auto relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/90 border border-purple-950/60 text-xs font-medium text-purple-300 mb-8 shadow-inner shadow-purple-950/20 backdrop-blur-sm"
+          >
+            <Code2 className="w-3.5 h-3.5 text-purple-400" />
+            <span>React · Vite · Tailwind CSS · Portfolio Project</span>
+          </motion.div>
+
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.15 }}
+            className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] text-white"
+          >
+            Gestión empresarial ligera, <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 via-purple-300 to-zinc-400 font-normal">
+              potente y en tiempo real.
+            </span>
+          </motion.h1>
+
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="mt-6 text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto font-normal leading-relaxed"
+          >
+            FlowMetrics centraliza clientes, stock, ventas y analíticas en un mini-ERP diseñado para pequeños negocios que buscan la agilidad que una hoja de cálculo no puede ofrecer.
+          </motion.p>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.45 }}
+            className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
+            <motion.button 
+              whileHover={{ scale: 1.04, y: -2, boxShadow: "0 0 25px rgba(88, 28, 135, 0.5)" }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              onClick={() => navigate('/demo/dashboard')}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-950 to-purple-900 hover:from-purple-900 hover:to-purple-800 text-white font-medium px-6 py-3 rounded-lg transition-all shadow-xl shadow-purple-950/50 hover:shadow-purple-900/70 text-sm cursor-pointer border border-purple-800/40"
+            >
+              Ver demo funcional
+              <ArrowRight className="w-4 h-4" />
+            </motion.button>
+            
+            <motion.button 
+              whileHover={{ scale: 1.04, y: -2, borderColor: "rgba(147, 51, 234, 0.5)" }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              onClick={handleOpenModal}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-medium px-6 py-3 rounded-lg transition-all border border-purple-950/40 text-sm cursor-pointer shadow-md"
+            >
+              Comenzar gratis
+            </motion.button>
+          </motion.div>
         </div>
 
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight max-w-4xl mx-auto leading-[1.1] text-white">
-          La gestión de tu negocio, <br className="hidden sm:inline" />
-          <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-200 bg-clip-text text-transparent">
-            simple y en tiempo real.
-          </span>
-        </h1>
-
-        <p className="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
-          FlowMetrics centraliza tus clientes, stock, ventas y métricas financieras en un mini-ERP diseñado específicamente para pequeños negocios que buscan agilidad.
-        </p>
-
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button 
-            onClick={() => navigate('/demo/dashboard')}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-7 py-3.5 rounded-xl transition-all shadow-xl shadow-indigo-600/25 hover:shadow-indigo-600/40 active:scale-95 text-base cursor-pointer"
+        {/* COLLAGE FLOTANTE DE CAPTURAS / MOCKUPS (Distribuidos a lo ancho, ocupando todo el ancho de la página) */}
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.0, delay: 0.6 }}
+          className="mt-20 relative w-full max-w-[1400px] mx-auto h-[380px] sm:h-[480px] px-2 sm:px-0"
+        >
+          {/* Mockup principal central / posterior */}
+          <motion.div 
+            animate={{ y: [0, -10, 0] }}
+            transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+            className="absolute inset-x-0 mx-auto w-full max-w-5xl bg-zinc-900/95 border border-purple-950/50 rounded-xl p-3 sm:p-4 shadow-2xl shadow-purple-950/25 backdrop-blur-xl z-10"
           >
-            Ver demo funcional
-            <ArrowRight className="w-4 h-4" />
-          </button>
-          
-          <button 
-            onClick={handleOpenModal}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800/80 text-slate-200 font-medium px-7 py-3.5 rounded-xl transition-all border border-slate-800 text-base cursor-pointer"
-          >
-            Comenzar gratis
-          </button>
-        </div>
-
-        <p className="mt-4 text-xs text-slate-500">
-          No requiere tarjeta de crédito · Entorno aislado temporal por visitante
-        </p>
-
-        {/* VISTA PREVIA VISUAL DEL DASHBOARD (Mockup) */}
-        <div id="preview" className="mt-16 sm:mt-20 relative max-w-5xl mx-auto rounded-2xl border border-slate-800 bg-slate-900/80 p-2 sm:p-4 shadow-2xl backdrop-blur-xl">
-          <div className="absolute -top-3 left-6 px-3 py-1 bg-slate-800 border border-slate-700 text-slate-300 rounded-md text-xs font-mono flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Live Dashboard Preview
-          </div>
-
-          <div className="rounded-xl overflow-hidden border border-slate-800/80 bg-slate-950 p-4 sm:p-6 text-left">
-            {/* Falsa barra superior de la app */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800/60 mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                <span className="ml-2 text-xs font-mono text-slate-500">flowmetrics-app.demo/dashboard</span>
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-4 px-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                <span className="ml-2 text-xs font-mono text-zinc-500">flowmetrics-app.demo/dashboard</span>
               </div>
-              <div className="hidden sm:flex items-center gap-2 text-xs text-indigo-400 bg-indigo-950/50 px-2.5 py-1 rounded-lg border border-indigo-800/30">
-                <Activity className="w-3.5 h-3.5" /> Sesión activa de prueba
-              </div>
+              <span className="text-[11px] text-purple-300 bg-purple-950/50 px-2 py-0.5 rounded border border-purple-900/40 flex items-center gap-1.5">
+                <Activity className="w-3 h-3 text-purple-400" /> Entorno de prueba aislado
+              </span>
             </div>
-
-            {/* Falsas métricas rápidas */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80">
-                <div className="text-xs text-slate-400 font-medium">Ingresos Totales (Mes)</div>
-                <div className="text-2xl font-bold text-white mt-1">24.580,00 €</div>
-                <div className="text-xs text-emerald-400 mt-1 flex items-center gap-1 font-medium">
-                  <TrendingUp className="w-3 h-3" /> +14.2% vs mes anterior
+            
+            {/* Contenido simulado interno del dashboard */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/60">
+                <div className="text-[11px] text-zinc-500">Ingresos Totales</div>
+                <div className="text-lg font-semibold text-white mt-1">24.580 €</div>
+                <div className="text-[10px] text-purple-400 mt-1 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3 text-purple-400" /> +14.2% este mes
                 </div>
               </div>
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80">
-                <div className="text-xs text-slate-400 font-medium">Ventas Registradas</div>
-                <div className="text-2xl font-bold text-white mt-1">142</div>
-                <div className="text-xs text-indigo-400 mt-1 font-medium">Promedio 172 € / venta</div>
+              <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/60">
+                <div className="text-[11px] text-zinc-500">Ventas Registradas</div>
+                <div className="text-lg font-semibold text-white mt-1">142</div>
+                <div className="text-[10px] text-zinc-400 mt-1">Promedio 172 € / op.</div>
               </div>
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80">
-                <div className="text-xs text-slate-400 font-medium">Clientes Activos</div>
-                <div className="text-2xl font-bold text-white mt-1">89</div>
-                <div className="text-xs text-slate-400 mt-1 font-medium">+12 nuevos esta semana</div>
+              <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/60">
+                <div className="text-[11px] text-zinc-500">Clientes Activos</div>
+                <div className="text-lg font-semibold text-white mt-1">89</div>
+                <div className="text-[10px] text-zinc-400 mt-1">+12 nuevos</div>
               </div>
             </div>
 
-            {/* Falso bloque gráfico inferior */}
-            <div className="p-5 rounded-xl bg-slate-900/40 border border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="space-y-1 text-center sm:text-left">
-                <div className="text-sm font-semibold text-white">¿Quieres explorar los datos reales?</div>
-                <div className="text-xs text-slate-400">Prueba a crear productos, registrar ventas o simular clientes en tiempo real.</div>
-              </div>
-              <button 
-                onClick={() => navigate('/demo/dashboard')}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2.5 rounded-lg transition-all cursor-pointer shadow-md"
-              >
-                Acceder a la Demo Interactiva
-              </button>
+            <div className="h-28 bg-zinc-950 rounded-lg border border-zinc-800/60 flex items-center justify-center text-xs text-zinc-600 font-mono">
+              [ Gráfica interactiva de analíticas en tiempo real ]
             </div>
+          </motion.div>
 
-          </div>
-        </div>
+          {/* Tarjeta flotante derecha - Desplazada hacia el extremo derecho de la pantalla */}
+          <motion.div 
+            animate={{ y: [0, 12, 0] }}
+            transition={{ repeat: Infinity, duration: 7, ease: "easeInOut", delay: 1 }}
+            className="absolute right-2 sm:right-6 lg:right-12 top-28 sm:top-36 w-64 sm:w-80 bg-zinc-950/95 border border-purple-950/60 rounded-xl p-4 shadow-2xl shadow-purple-950/35 z-20 hidden lg:block backdrop-blur-md"
+          >
+            <div className="text-xs font-semibold text-zinc-200 mb-2 flex items-center justify-between">
+              <span>Últimas Transacciones</span>
+              <span className="text-[10px] text-purple-400 font-mono">EN VIVO</span>
+            </div>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center p-2 rounded bg-zinc-900 border border-zinc-800/60">
+                <span className="text-zinc-300">Factura #142</span>
+                <span className="text-purple-300 font-mono">+340,00 €</span>
+              </div>
+              <div className="flex justify-between items-center p-2 rounded bg-zinc-900 border border-zinc-800/60">
+                <span className="text-zinc-300">Factura #141</span>
+                <span className="text-purple-300 font-mono">+125,50 €</span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Tarjeta flotante izquierda - Desplazada hacia el extremo izquierdo de la pantalla */}
+          <motion.div 
+            animate={{ y: [0, -8, 0] }}
+            transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 0.5 }}
+            className="absolute left-2 sm:left-6 lg:left-12 bottom-2 sm:bottom-6 w-60 sm:w-72 bg-zinc-950/95 border border-purple-950/60 rounded-xl p-4 shadow-2xl shadow-purple-950/35 z-20 hidden lg:block backdrop-blur-md"
+          >
+            <div className="text-xs font-semibold text-zinc-200 mb-1">Catálogo & Stock</div>
+            <p className="text-[11px] text-zinc-400 mb-2">Control de inventario sincronizado.</p>
+            <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800">
+              <div className="bg-gradient-to-r from-purple-900 to-purple-500 w-3/4 h-full rounded-full" />
+            </div>
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* SECCIÓN DE CARACTERÍSTICAS / FEATURES */}
-      <section id="features" className="py-24 max-w-7xl mx-auto px-6 border-t border-slate-900">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">Módulos del Sistema</h2>
+      {/* SECCIÓN DE CARACTERÍSTICAS / FEATURES (Animación de scroll más lenta) */}
+      <section id="features" className="py-28 max-w-7xl mx-auto px-6 border-t border-zinc-900">
+        <motion.div 
+          initial={{ opacity: 0, y: 35 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.0, ease: "easeOut" }}
+          className="text-center max-w-3xl mx-auto mb-16"
+        >
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-3">Módulos del Sistema</h2>
           <h3 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            Todo lo que tu negocio necesita en una sola plataforma
+            Ingeniería limpia para operaciones diarias
           </h3>
-          <p className="mt-4 text-slate-400 text-base">
-            Diseñado con una arquitectura limpia y reactiva para que el control de operaciones sea rápido y sin fricciones.
+          <p className="mt-4 text-zinc-400 text-sm sm:text-base">
+            Cada módulo ha sido desarrollado optimizando rendimiento, flujos de datos y usabilidad.
           </p>
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           
           {/* Feature 1 */}
-          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/80 hover:border-indigo-500/50 transition-all group">
-            <div className="w-12 h-12 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-5 group-hover:scale-110 transition-transform">
-              <Users className="w-6 h-6" />
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.1, ease: "easeOut" }}
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-900/60 transition-all group shadow-sm hover:shadow-purple-950/30"
+          >
+            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-105 transition-transform">
+              <Users className="w-5 h-5" />
             </div>
-            <h4 className="text-lg font-semibold text-white mb-2">Gestión de Clientes</h4>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Directorio completo con historial de compras, datos de contacto y seguimiento de interacción comercial en tiempo real.
+            <h4 className="text-base font-semibold text-white mb-2">Gestión de Clientes</h4>
+            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+              Directorio centralizado con historial de compras detallado y seguimiento comercial instantáneo.
             </p>
-          </div>
+          </motion.div>
 
           {/* Feature 2 */}
-          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/80 hover:border-indigo-500/50 transition-all group">
-            <div className="w-12 h-12 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400 mb-5 group-hover:scale-110 transition-transform">
-              <Package className="w-6 h-6" />
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.2, ease: "easeOut" }}
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-900/60 transition-all group shadow-sm hover:shadow-purple-950/30"
+          >
+            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-105 transition-transform">
+              <Package className="w-5 h-5" />
             </div>
-            <h4 className="text-lg font-semibold text-white mb-2">Productos y Stock</h4>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Catálogo organizado por categorías con control de inventario automatizado, precios y alertas de existencias.
+            <h4 className="text-base font-semibold text-white mb-2">Catálogo & Stock</h4>
+            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+              Control estructurado por categorías con actualización automática de existencias en tiempo real.
             </p>
-          </div>
+          </motion.div>
 
           {/* Feature 3 */}
-          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/80 hover:border-indigo-500/50 transition-all group">
-            <div className="w-12 h-12 rounded-xl bg-emerald-600/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-5 group-hover:scale-110 transition-transform">
-              <ShoppingCart className="w-6 h-6" />
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-900/60 transition-all group shadow-sm hover:shadow-purple-950/30"
+          >
+            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-105 transition-transform">
+              <ShoppingCart className="w-5 h-5" />
             </div>
-            <h4 className="text-lg font-semibold text-white mb-2">Registro de Ventas</h4>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Creación rápida de transacciones con líneas de producto múltiples tipo factura y cálculo automático de totales.
+            <h4 className="text-base font-semibold text-white mb-2">Registro de Ventas</h4>
+            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+              Generación de transacciones con líneas múltiples tipo factura y cálculo dinámico de subtotales.
             </p>
-          </div>
+          </motion.div>
 
           {/* Feature 4 */}
-          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/80 hover:border-indigo-500/50 transition-all group">
-            <div className="w-12 h-12 rounded-xl bg-amber-600/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-5 group-hover:scale-110 transition-transform">
-              <BarChart3 className="w-6 h-6" />
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.4, ease: "easeOut" }}
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-900/60 transition-all group shadow-sm hover:shadow-purple-950/30"
+          >
+            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-105 transition-transform">
+              <BarChart3 className="w-5 h-5" />
             </div>
-            <h4 className="text-lg font-semibold text-white mb-2">Informes en Tiempo Real</h4>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Dashboards interactivos con gráficos dinámicos de ingresos, productos más vendidos y actividad reciente del negocio.
+            <h4 className="text-base font-semibold text-white mb-2">Informes Analíticos</h4>
+            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+              Dashboards interactivos con métricas de rendimiento y visualización directa de actividad reciente.
             </p>
-          </div>
+          </motion.div>
 
         </div>
       </section>
 
-      {/* SECCIÓN DE PRECIOS (Ilustrativa/Ficticia) */}
-      <section id="pricing" className="py-24 max-w-7xl mx-auto px-6 border-t border-slate-900">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">Planes transparentes</h2>
+      {/* SECCIÓN DE PRECIOS */}
+      <section id="pricing" className="py-28 max-w-7xl mx-auto px-6 border-t border-zinc-900">
+        <motion.div 
+          initial={{ opacity: 0, y: 35 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.0, ease: "easeOut" }}
+          className="text-center max-w-3xl mx-auto mb-16"
+        >
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-3">Modelos de Licenciamiento</h2>
           <h3 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            Planes adaptados a cada etapa
+            Planes adaptados a cada escala
           </h3>
-          <p className="mt-4 text-slate-400 text-base">
-            *Nota de portfolio: Esta sección es puramente ilustrativa. No existen pagos reales ni pasarelas de cobro vinculadas.
+          <p className="mt-4 text-zinc-400 text-sm">
+            *Nota de portfolio: Sección conceptual puramente ilustrativa sin pasarela de cobro real conectada.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           
           {/* Plan Starter */}
-          <div className="p-8 rounded-3xl bg-slate-900/30 border border-slate-800 flex flex-col justify-between">
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.1, ease: "easeOut" }}
+            className="p-8 rounded-2xl bg-zinc-950 border border-zinc-900 flex flex-col justify-between"
+          >
             <div>
-              <div className="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-2">Starter</div>
-              <div className="text-3xl font-extrabold text-white mb-4">19 € <span className="text-sm font-normal text-slate-400">/ mes</span></div>
-              <p className="text-sm text-slate-400 mb-6">Ideal para profesionales independientes y comercios pequeños.</p>
+              <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Starter</div>
+              <div className="text-3xl font-bold text-white mb-3">19 € <span className="text-xs font-normal text-zinc-500">/ mes</span></div>
+              <p className="text-xs sm:text-sm text-zinc-400 mb-6">Para profesionales independientes y pequeños comercios.</p>
               
-              <ul className="space-y-3 text-sm text-slate-300 mb-8">
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" /> Hasta 200 productos</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" /> Control básico de clientes</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" /> Informes mensuales</li>
+              <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-300 mb-8">
+                <li className="flex items-center gap-2">· Hasta 200 productos</li>
+                <li className="flex items-center gap-2">· Gestión básica de clientes</li>
+                <li className="flex items-center gap-2">· Informes mensuales</li>
               </ul>
             </div>
             
-            <button 
+            <motion.button 
+              whileHover={{ scale: 1.03, boxShadow: "0 0 15px rgba(88, 28, 135, 0.3)" }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/demo/dashboard')}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-all text-sm cursor-pointer"
+              className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs border border-purple-950/60 cursor-pointer shadow-sm"
             >
               Probar en Demo
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
-          {/* Plan Pro (Destacado) */}
-          <div className="p-8 rounded-3xl bg-indigo-950/20 border-2 border-indigo-500/80 flex flex-col justify-between relative shadow-2xl shadow-indigo-500/10">
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
-              Más popular
+          {/* Plan Pro (Destacado con el nuevo Morado Oscuro elegante y refinado) */}
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.2, ease: "easeOut" }}
+            className="p-8 rounded-2xl bg-gradient-to-b from-[#24113c] via-zinc-900 to-zinc-950 border border-[#581c87]/60 flex flex-col justify-between relative shadow-2xl shadow-purple-950/30"
+          >
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#581c87] text-purple-200 text-[10px] font-semibold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-md border border-purple-500/30">
+              Recomendado
             </div>
             <div>
-              <div className="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-2">Pro Business</div>
-              <div className="text-3xl font-extrabold text-white mb-4">49 € <span className="text-sm font-normal text-slate-400">/ mes</span></div>
-              <p className="text-sm text-slate-400 mb-6">Para pequeños negocios en crecimiento que necesitan control total.</p>
+              <div className="text-xs font-semibold text-purple-300 uppercase tracking-wider mb-2">Pro Business</div>
+              <div className="text-3xl font-bold text-white mb-3">49 € <span className="text-xs font-normal text-zinc-400">/ mes</span></div>
+              <p className="text-xs sm:text-sm text-zinc-300 mb-6">Para negocios en crecimiento que exigen control absoluto.</p>
               
-              <ul className="space-y-3 text-sm text-slate-300 mb-8">
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" /> Productos ilimitados</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" /> Clientes y ventas avanzadas</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" /> Dashboard en tiempo real</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" /> Soporte prioritario</li>
+              <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-200 mb-8">
+                <li className="flex items-center gap-2">· Productos ilimitados</li>
+                <li className="flex items-center gap-2">· Módulos avanzados de ventas</li>
+                <li className="flex items-center gap-2">· Analíticas en tiempo real</li>
+                <li className="flex items-center gap-2">· Soporte técnico prioritario</li>
               </ul>
             </div>
             
-            <button 
+            <motion.button 
+              whileHover={{ scale: 1.04, y: -1, boxShadow: "0 0 22px rgba(88, 28, 135, 0.5)" }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
               onClick={() => navigate('/demo/dashboard')}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-xl transition-all text-sm shadow-lg shadow-indigo-600/30 cursor-pointer"
+              className="w-full bg-gradient-to-r from-[#4c1d95] to-[#3b0764] hover:from-[#581c87] hover:to-[#4c1d95] text-white font-medium py-2.5 rounded-lg transition-all text-xs shadow-lg shadow-purple-950/50 cursor-pointer border border-purple-500/30"
             >
               Probar en Demo
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
           {/* Plan Enterprise */}
-          <div className="p-8 rounded-3xl bg-slate-900/30 border border-slate-800 flex flex-col justify-between">
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}
+            className="p-8 rounded-2xl bg-zinc-950 border border-zinc-900 flex flex-col justify-between"
+          >
             <div>
-              <div className="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-2">Enterprise</div>
-              <div className="text-3xl font-extrabold text-white mb-4">99 € <span className="text-sm font-normal text-slate-400">/ mes</span></div>
-              <p className="text-sm text-slate-400 mb-6">Para múltiples ubicaciones y equipos de trabajo ampliados.</p>
+              <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Enterprise</div>
+              <div className="text-3xl font-bold text-white mb-3">99 € <span className="text-xs font-normal text-zinc-500">/ mes</span></div>
+              <p className="text-xs sm:text-sm text-zinc-400 mb-6">Para múltiples ubicaciones y equipos comerciales.</p>
               
-              <ul className="space-y-3 text-sm text-slate-300 mb-8">
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" /> Múltiples almacenes</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" /> Roles y permisos de usuario</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" /> API dedicada y respaldos</li>
+              <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-300 mb-8">
+                <li className="flex items-center gap-2">· Multi-almacén sincronizado</li>
+                <li className="flex items-center gap-2">· Roles y permisos de usuario</li>
+                <li className="flex items-center gap-2">· Respaldo y API dedicada</li>
               </ul>
             </div>
             
-            <button 
+            <motion.button 
+              whileHover={{ scale: 1.03, boxShadow: "0 0 15px rgba(88, 28, 135, 0.3)" }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/demo/dashboard')}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-all text-sm cursor-pointer"
+              className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs border border-purple-950/60 cursor-pointer shadow-sm"
             >
               Probar en Demo
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
         </div>
       </section>
 
       {/* TESTIMONIOS */}
-      <section id="testimonials" className="py-24 max-w-7xl mx-auto px-6 border-t border-slate-900">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">Casos de éxito</h2>
+      <section id="testimonials" className="py-28 max-w-7xl mx-auto px-6 border-t border-zinc-900">
+        <motion.div 
+          initial={{ opacity: 0, y: 35 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.0, ease: "easeOut" }}
+          className="text-center max-w-3xl mx-auto mb-16"
+        >
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-3">Casos de Uso</h2>
           <h3 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            Lo que opinan los pequeños negocios (ficticio)
+            Valoraciones de pequeños negocios (ficticio)
           </h3>
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/80">
-            <p className="text-sm text-slate-300 mb-6 italic">
-              "Antes usábamos una hoja de cálculo desordenada para nuestro inventario de tecnología. Con FlowMetrics llevamos el control de ventas de forma instantánea."
+          <motion.div 
+            initial={{ opacity: 0, y: 35 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.1, ease: "easeOut" }}
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-950/60 transition-all"
+          >
+            <p className="text-xs sm:text-sm text-zinc-300 mb-6 leading-relaxed">
+              "Sustituimos las hojas de cálculo caóticas por FlowMetrics. Registrar ventas y controlar el inventario tecnológico ahora toma segundos."
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-indigo-600/20 text-indigo-400 font-semibold flex items-center justify-center text-sm">
+              <div className="w-8 h-8 rounded-full bg-purple-950 border border-purple-800 text-purple-300 font-semibold flex items-center justify-center text-xs">
                 CR
               </div>
               <div>
-                <div className="text-sm font-semibold text-white">Carlos Ruiz</div>
-                <div className="text-xs text-slate-400">Tienda de Componentes Tech</div>
+                <div className="text-xs font-semibold text-white">Carlos Ruiz</div>
+                <div className="text-[11px] text-zinc-500">Componentes Tech</div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/80">
-            <p className="text-sm text-slate-300 mb-6 italic">
-              "La interfaz es rapidísima y muy limpia. Registrar ventas con líneas múltiples nos ahorra muchísimo tiempo al final de cada jornada."
+          <motion.div 
+            initial={{ opacity: 0, y: 35 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.2, ease: "easeOut" }}
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-950/60 transition-all"
+          >
+            <p className="text-xs sm:text-sm text-zinc-300 mb-6 leading-relaxed">
+              "La interfaz es extremadamente fluida y limpia. Las líneas de factura múltiples agilizan la atención diaria en mostrador de forma increíble."
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-violet-600/20 text-violet-400 font-semibold flex items-center justify-center text-sm">
+              <div className="w-8 h-8 rounded-full bg-purple-950 border border-purple-800 text-purple-300 font-semibold flex items-center justify-center text-xs">
                 LM
               </div>
               <div>
-                <div className="text-sm font-semibold text-white">Laura Morales</div>
-                <div className="text-xs text-slate-400">Boutique & Accesorios</div>
+                <div className="text-xs font-semibold text-white">Laura Morales</div>
+                <div className="text-[11px] text-zinc-500">Boutique & Accesorios</div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/80">
-            <p className="text-sm text-slate-300 mb-6 italic">
-              "Poder ver las métricas y gráficos de ingresos en tiempo real nos ayuda a tomar mejores decisiones de stock sin complicaciones técnicas."
+          <motion.div 
+            initial={{ opacity: 0, y: 35 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-950/60 transition-all"
+          >
+            <p className="text-xs sm:text-sm text-zinc-300 mb-6 leading-relaxed">
+              "Poder consultar gráficos de ingresos en tiempo real nos da una visibilidad fantástica para la toma de decisiones de stock."
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-600/20 text-emerald-400 font-semibold flex items-center justify-center text-sm">
+              <div className="w-8 h-8 rounded-full bg-purple-950 border border-purple-800 text-purple-300 font-semibold flex items-center justify-center text-xs">
                 AG
               </div>
               <div>
-                <div className="text-sm font-semibold text-white">Alejandro Gómez</div>
-                <div className="text-xs text-slate-400">Distribuciones Locales AG</div>
+                <div className="text-xs font-semibold text-white">Alejandro Gómez</div>
+                <div className="text-[11px] text-zinc-500">Distribuciones AG</div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
         </div>
       </section>
 
       {/* FOOTER SIMPLE */}
-      <footer className="border-t border-slate-900 py-12 max-w-7xl mx-auto px-6 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6 text-sm text-slate-500">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-            <BarChart3 className="w-4 h-4" />
+      <footer className="border-t border-zinc-900 py-10 max-w-7xl mx-auto px-6 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400">
+            <BarChart3 className="w-3.5 h-3.5" />
           </div>
-          <span className="font-semibold text-slate-300">FlowMetrics</span>
-          <span className="text-slate-600">· Proyecto de Portfolio Personal (2026)</span>
+          <span className="font-medium text-zinc-300">FlowMetrics</span>
+          <span>· Portfolio Web Project (2026)</span>
         </div>
 
         <div className="flex items-center gap-6">
           <button 
             onClick={() => navigate('/demo/dashboard')}
-            className="hover:text-indigo-400 transition-colors cursor-pointer"
+            className="hover:text-purple-300 transition-colors cursor-pointer"
           >
             Demo interactiva
           </button>
-          <a href="#features" className="hover:text-slate-300 transition-colors">Características</a>
-          <a href="#pricing" className="hover:text-slate-300 transition-colors">Precios</a>
+          <a href="#features" className="hover:text-purple-300 transition-colors">Características</a>
+          <a href="#pricing" className="hover:text-purple-300 transition-colors">Precios</a>
         </div>
       </footer>
 
-      {/* MODAL DE "COMENZAR GRATIS" (Decorativo / No funcional) */}
+      {/* MODAL DE "COMENZAR GRATIS" */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 sm:p-8 relative shadow-2xl animate-in fade-in zoom-in duration-200">
-            
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-zinc-950 border border-purple-900/50 rounded-2xl max-w-md w-full p-6 sm:p-8 relative shadow-2xl shadow-purple-950/40"
+          >
             <button 
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors p-1"
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors p-1 cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
             {!modalSubmitted ? (
               <>
                 <div className="mb-6">
-                  <span className="text-xs font-semibold text-indigo-400 uppercase tracking-widest">Entorno de Demostración</span>
-                  <h3 className="text-2xl font-bold text-white mt-1">Crea tu cuenta de prueba</h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Simula el alta en FlowMetrics (este registro es meramente decorativo para el portfolio).
+                  <span className="text-[11px] font-semibold text-purple-400 uppercase tracking-widest">Entorno de Simulación</span>
+                  <h3 className="text-xl font-bold text-white mt-1">Crea tu cuenta de prueba</h3>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Formulario decorativo para demostrar maquetación de registro en el portfolio.
                   </p>
                 </div>
 
-                <form onSubmit={handleModalSubmit} className="space-y-4">
+                <form onSubmit={handleModalSubmit} className="space-y-3.5">
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Nombre completo</label>
+                    <label className="block text-xs font-medium text-zinc-300 mb-1">Nombre completo</label>
                     <input 
                       type="text" 
                       required
                       placeholder="Ej. Ana Pérez"
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-purple-700"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Nombre de la empresa</label>
+                    <label className="block text-xs font-medium text-zinc-300 mb-1">Nombre de la empresa</label>
                     <input 
                       type="text" 
                       required
                       placeholder="Ej. Mi Tienda S.L."
                       value={formData.company}
                       onChange={(e) => setFormData({...formData, company: e.target.value})}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-purple-700"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Correo electrónico</label>
+                    <label className="block text-xs font-medium text-zinc-300 mb-1">Correo electrónico</label>
                     <input 
                       type="email" 
                       required
                       placeholder="ana@mitienda.com"
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-purple-700"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Contraseña</label>
+                    <label className="block text-xs font-medium text-zinc-300 mb-1">Contraseña</label>
                     <input 
                       type="password" 
                       required
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-purple-700"
                     />
                   </div>
 
-                  <button 
+                  <motion.button 
+                    whileHover={{ scale: 1.02, boxShadow: "0 0 15px rgba(88, 28, 135, 0.4)" }}
+                    whileTap={{ scale: 0.98 }}
                     type="submit"
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-xl transition-all text-sm mt-2 shadow-lg shadow-indigo-600/20 cursor-pointer"
+                    className="w-full bg-gradient-to-r from-purple-950 to-purple-900 hover:from-purple-900 hover:to-purple-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs mt-2 cursor-pointer shadow-lg shadow-purple-950/50 border border-purple-800/40"
                   >
                     Crear cuenta simulada
-                  </button>
+                  </motion.button>
                 </form>
               </>
             ) : (
               <div className="py-6 text-center space-y-4">
-                <div className="w-12 h-12 rounded-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center mx-auto">
-                  <ShieldCheck className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-full bg-purple-950 border border-purple-800 text-purple-300 flex items-center justify-center mx-auto shadow-inner">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
-                <h4 className="text-xl font-bold text-white">¡Mensaje de Demostración!</h4>
-                <p className="text-sm text-slate-300 leading-relaxed px-2">
-                  En esta demostración no se crean cuentas reales. Puedes explorar la aplicación completa y funcional pulsando el botón inferior.
+                <h4 className="text-lg font-bold text-white">Aviso de Demostración</h4>
+                <p className="text-xs text-zinc-300 leading-relaxed px-2">
+                  En esta demostración no se crean cuentas reales. Para explorar la aplicación completa con datos de prueba, pulsa en el botón inferior:
                 </p>
-                <div className="pt-4 flex flex-col gap-3">
-                  <button 
+                <div className="pt-2 flex flex-col gap-2.5">
+                  <motion.button 
+                    whileHover={{ scale: 1.02, boxShadow: "0 0 15px rgba(88, 28, 135, 0.4)" }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => navigate('/demo/dashboard')}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-xl transition-all text-sm shadow-lg shadow-indigo-600/20 cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-to-r from-purple-950 to-purple-900 hover:from-purple-900 hover:to-purple-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-purple-950/50 border border-purple-800/40"
                   >
-                    Ver demo funcional <ArrowRight className="w-4 h-4" />
-                  </button>
+                    Ver demo funcional <ArrowRight className="w-3.5 h-3.5" />
+                  </motion.button>
                   <button 
                     onClick={() => setIsModalOpen(false)}
-                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium py-2.5 rounded-xl transition-all text-xs cursor-pointer"
+                    className="w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium py-2 rounded-lg transition-all text-xs cursor-pointer border border-zinc-800"
                   >
                     Cerrar ventana
                   </button>
@@ -519,10 +809,60 @@ export default function Landing() {
               </div>
             )}
 
-          </div>
+          </motion.div>
         </div>
       )}
 
+      {/* TARJETA DE DESARROLLADORA (Andrea Viera Hernández) */}
+      <motion.div 
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.8, delay: 0.8 }}
+        className="fixed bottom-6 left-6 z-50 hidden lg:block"
+        onMouseEnter={() => setIsCardExpanded(true)}
+        onMouseLeave={() => setIsCardExpanded(false)}
+      >
+        <motion.div 
+          animate={{ width: isCardExpanded ? '280px' : '200px' }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="bg-zinc-900/95 border border-purple-950/60 rounded-xl p-3 shadow-2xl shadow-purple-950/30 backdrop-blur-md overflow-hidden"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800 flex items-center justify-center text-xs font-semibold text-purple-300 shrink-0 shadow-inner">
+              AV
+            </div>
+            <div className="overflow-hidden whitespace-nowrap">
+              <div className="text-xs font-semibold text-zinc-200 truncate">Andrea Viera Hernández</div>
+              <div className="text-[11px] text-purple-400 truncate">Desarrolladora Web</div>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {isCardExpanded && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="mt-3 pt-3 border-t border-zinc-800 space-y-2 text-xs text-zinc-400"
+              >
+                <a href="mailto:tu-correo@example.com" className="flex items-center gap-2 hover:text-purple-300 transition-colors truncate">
+                  <Mail className="w-3.5 h-3.5 shrink-0 text-purple-400" />
+                  <span className="truncate">tu-correo@example.com</span>
+                </a>
+                <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-purple-300 transition-colors">
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0 text-purple-400" />
+                  <span>LinkedIn Profile</span>
+                </a>
+                <a href="https://github.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-purple-300 transition-colors">
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0 text-purple-400" />
+                  <span>GitHub Repository</span>
+                </a>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

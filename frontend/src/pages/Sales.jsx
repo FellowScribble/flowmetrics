@@ -105,7 +105,7 @@ function Sales() {
     try {
       await deleteSale(id);
       loadData();
-    } catch (error) {
+    } catch {
       alert('Ha ocurrido un error al eliminar la venta.');
     }
   }

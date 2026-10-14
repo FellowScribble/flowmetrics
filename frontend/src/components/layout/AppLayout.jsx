@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { useDemoSession } from '../../context/DemoSessionContext';
+import { useDemoSession } from '../../context/useDemoSession';
 
 function AppLayout() {
   const { session, loading } = useDemoSession();

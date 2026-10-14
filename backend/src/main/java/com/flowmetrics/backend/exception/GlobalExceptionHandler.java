@@ -32,4 +32,11 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", ex.getMessage()));
     }
+
+    @ExceptionHandler(TemplateCompanyProtectedException.class)
+    public ResponseEntity<Map<String, String>> handleTemplateCompanyProtected(TemplateCompanyProtectedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(Map.of("error", ex.getMessage()));
+    }
 }

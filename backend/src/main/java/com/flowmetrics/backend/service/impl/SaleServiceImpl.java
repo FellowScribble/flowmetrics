@@ -84,6 +84,10 @@ public class SaleServiceImpl implements SaleService {
         Customer customer = customerRepository.findById(dto.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con id " + dto.getCustomerId()));
 
+        if (!customer.getCompany().getId().equals(company.getId())) {
+            throw new ResourceNotFoundException("Cliente no encontrado con id " + dto.getCustomerId());
+        }
+
         Sale sale = new Sale();
         sale.setCompany(company);
         sale.setCustomer(customer);
@@ -92,7 +96,7 @@ public class SaleServiceImpl implements SaleService {
         sale.setStatus(dto.getStatus());
         sale.setNotes(dto.getNotes());
 
-        List<SaleItem> items = buildItemsAndDeductStock(dto.getItems(), sale);
+        List<SaleItem> items = buildItemsAndDeductStock(dto.getItems(), sale, company.getId());
         sale.setItems(items);
         sale.setTotal(calculateTotal(items));
 
@@ -123,6 +127,10 @@ public class SaleServiceImpl implements SaleService {
         Customer customer = customerRepository.findById(dto.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con id " + dto.getCustomerId()));
 
+        if (!customer.getCompany().getId().equals(company.getId())) {
+            throw new ResourceNotFoundException("Cliente no encontrado con id " + dto.getCustomerId());
+        }
+
         // Devolvemos al stock las cantidades de los items antiguos, antes de aplicar los nuevos
         restoreStock(sale.getItems());
 
@@ -135,7 +143,7 @@ public class SaleServiceImpl implements SaleService {
 
         sale.getItems().clear();
 
-        List<SaleItem> newItems = buildItemsAndDeductStock(dto.getItems(), sale);
+        List<SaleItem> newItems = buildItemsAndDeductStock(dto.getItems(), sale, company.getId());
         sale.getItems().addAll(newItems);
         sale.setTotal(calculateTotal(newItems));
 
@@ -158,7 +166,7 @@ public class SaleServiceImpl implements SaleService {
 
     // --- Métodos de apoyo ---
 
-    private List<SaleItem> buildItemsAndDeductStock(List<CreateSaleItemDTO> itemDTOs, Sale sale) {
+    private List<SaleItem> buildItemsAndDeductStock(List<CreateSaleItemDTO> itemDTOs, Sale sale, Long companyId) {
 
         List<SaleItem> items = new ArrayList<>();
 
@@ -166,6 +174,10 @@ public class SaleServiceImpl implements SaleService {
 
             Product product = productRepository.findById(itemDTO.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con id " + itemDTO.getProductId()));
+
+            if (!product.getCompany().getId().equals(companyId)) {
+                throw new ResourceNotFoundException("Producto no encontrado con id " + itemDTO.getProductId());
+            }
 
             if (product.getStock() < itemDTO.getQuantity()) {
                 throw new InsufficientStockException(

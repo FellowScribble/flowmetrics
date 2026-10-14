@@ -2,57 +2,54 @@ package com.flowmetrics.backend.controller;
 
 import java.util.List;
 
-
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import com.flowmetrics.backend.dto.CompanyDTO;
 import com.flowmetrics.backend.service.CompanyService;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import com.flowmetrics.backend.dto.CreateCompanyDTO;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.http.ResponseEntity;
+import com.flowmetrics.backend.context.DemoContext;
+import com.flowmetrics.backend.exception.ResourceNotFoundException;
 
 @RestController
 public class CompanyController {
 
     private final CompanyService companyService;
+    private final DemoContext demoContext;
 
-    public CompanyController(CompanyService companyService) {
+    public CompanyController(CompanyService companyService, DemoContext demoContext) {
         this.companyService = companyService;
+        this.demoContext = demoContext;
     }
 
     @GetMapping("/api/companies")
     public List<CompanyDTO> getCompanies() {
-        return companyService.findAll();
+
+        return List.of(companyService.findById(requireSession()));
+
     }
-    
+
     @GetMapping("/api/companies/{id}")
     public CompanyDTO getCompanyById(@PathVariable Long id) {
+
+        Long sessionCompanyId = requireSession();
+
+        if (!sessionCompanyId.equals(id)) {
+            throw new ResourceNotFoundException("Empresa no encontrada con id " + id);
+        }
 
         return companyService.findById(id);
 
     }
-    
-    @PostMapping("/api/companies")
-    public CompanyDTO createCompany(@RequestBody CreateCompanyDTO dto) {
 
-        return companyService.create(dto);
+    private Long requireSession() {
+        Long sessionCompanyId = demoContext.getCompanyId();
 
-    }
-    
-    @PutMapping("/api/companies/{id}")
-    public CompanyDTO updateCompany(@PathVariable Long id, @RequestBody CreateCompanyDTO dto) {
-        return companyService.update(id, dto);
-    }
+        if (sessionCompanyId == null) {
+            throw new ResourceNotFoundException("Empresa no encontrada");
+        }
 
-    @DeleteMapping("/api/companies/{id}")
-    public ResponseEntity<Void> deleteCompany(@PathVariable Long id) {
-        companyService.delete(id);
-        return ResponseEntity.noContent().build();
+        return sessionCompanyId;
     }
 
 }
