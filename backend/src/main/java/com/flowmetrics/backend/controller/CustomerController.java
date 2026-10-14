@@ -8,83 +8,52 @@ import org.springframework.http.ResponseEntity;
 import com.flowmetrics.backend.dto.CustomerDTO;
 import com.flowmetrics.backend.dto.CreateCustomerDTO;
 import com.flowmetrics.backend.service.CustomerService;
-import com.flowmetrics.backend.context.DemoContext;
-import com.flowmetrics.backend.exception.ResourceNotFoundException;
+import com.flowmetrics.backend.context.SessionGuard;
 
 @RestController
 public class CustomerController {
 
     private final CustomerService customerService;
-    private final DemoContext demoContext;
+    private final SessionGuard sessionGuard;
 
-    public CustomerController(CustomerService customerService, DemoContext demoContext) {
+    public CustomerController(CustomerService customerService, SessionGuard sessionGuard) {
         this.customerService = customerService;
-        this.demoContext = demoContext;
+        this.sessionGuard = sessionGuard;
     }
 
     @GetMapping("/api/customers")
-    public List<CustomerDTO> getCustomers(@RequestParam(required = false) Long companyId) {
-
-        Long resolvedCompanyId = demoContext.getCompanyId();
-
-        if (resolvedCompanyId == null) {
-            resolvedCompanyId = companyId;
-        }
-
-        if (resolvedCompanyId != null) {
-            return customerService.findByCompany(resolvedCompanyId);
-        }
-
-        return customerService.findAll();
+    public List<CustomerDTO> getCustomers() {
+        return customerService.findByCompany(sessionGuard.requireCompanyId());
     }
 
     @GetMapping("/api/customers/{id}")
     public CustomerDTO getCustomerById(@PathVariable Long id) {
         CustomerDTO customer = customerService.findById(id);
-        checkOwnership(customer.getCompanyId(), id);
+        sessionGuard.requireOwnership(customer.getCompanyId(), "Cliente", id);
         return customer;
     }
 
     @PostMapping("/api/customers")
     public CustomerDTO createCustomer(@RequestBody CreateCustomerDTO dto) {
-
-        Long sessionCompanyId = demoContext.getCompanyId();
-        if (sessionCompanyId != null) {
-            dto.setCompanyId(sessionCompanyId);
-        }
-
+        dto.setCompanyId(sessionGuard.requireCompanyId());
         return customerService.create(dto);
     }
 
     @PutMapping("/api/customers/{id}")
     public CustomerDTO updateCustomer(@PathVariable Long id, @RequestBody CreateCustomerDTO dto) {
-
         CustomerDTO existing = customerService.findById(id);
-        checkOwnership(existing.getCompanyId(), id);
+        sessionGuard.requireOwnership(existing.getCompanyId(), "Cliente", id);
 
-        Long sessionCompanyId = demoContext.getCompanyId();
-        if (sessionCompanyId != null) {
-            dto.setCompanyId(sessionCompanyId);
-        }
-
+        dto.setCompanyId(sessionGuard.requireCompanyId());
         return customerService.update(id, dto);
     }
 
     @DeleteMapping("/api/customers/{id}")
     public ResponseEntity<Void> deleteCustomer(@PathVariable Long id) {
-
         CustomerDTO existing = customerService.findById(id);
-        checkOwnership(existing.getCompanyId(), id);
+        sessionGuard.requireOwnership(existing.getCompanyId(), "Cliente", id);
 
         customerService.delete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    private void checkOwnership(Long resourceCompanyId, Long resourceId) {
-        Long sessionCompanyId = demoContext.getCompanyId();
-
-        if (sessionCompanyId != null && !sessionCompanyId.equals(resourceCompanyId)) {
-            throw new ResourceNotFoundException("Cliente no encontrado con id " + resourceId);
-        }
     }
 }

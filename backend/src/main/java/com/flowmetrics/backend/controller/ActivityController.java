@@ -6,32 +6,21 @@ import org.springframework.web.bind.annotation.*;
 
 import com.flowmetrics.backend.dto.ActivityDTO;
 import com.flowmetrics.backend.service.ActivityService;
-import com.flowmetrics.backend.context.DemoContext;
+import com.flowmetrics.backend.context.SessionGuard;
 
 @RestController
 public class ActivityController {
 
     private final ActivityService activityService;
-    private final DemoContext demoContext;
+    private final SessionGuard sessionGuard;
 
-    public ActivityController(ActivityService activityService, DemoContext demoContext) {
+    public ActivityController(ActivityService activityService, SessionGuard sessionGuard) {
         this.activityService = activityService;
-        this.demoContext = demoContext;
+        this.sessionGuard = sessionGuard;
     }
 
     @GetMapping("/api/activity")
-    public List<ActivityDTO> getActivity(@RequestParam(required = false) Long companyId) {
-
-        Long resolvedCompanyId = demoContext.getCompanyId();
-
-        if (resolvedCompanyId == null) {
-            resolvedCompanyId = companyId;
-        }
-
-        if (resolvedCompanyId != null) {
-            return activityService.findByCompany(resolvedCompanyId);
-        }
-
-        return List.of();
+    public List<ActivityDTO> getActivity() {
+        return activityService.findByCompany(sessionGuard.requireCompanyId());
     }
 }

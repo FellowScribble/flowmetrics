@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getSales, createSale, deleteSale } from '../api/sales';
+import { getSales, createSale, updateSale, deleteSale } from '../api/sales';
 import { getCustomers } from '../api/customers';
 import { getProducts } from '../api/products';
 
@@ -8,6 +8,7 @@ function Sales() {
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
 
   const [customerId, setCustomerId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CARD');
@@ -79,14 +80,20 @@ function Sales() {
     }
 
     try {
-      await createSale(payload);
+      if (editingId) {
+        await updateSale(editingId, payload);
+      } else {
+        await createSale(payload);
+      }
       resetForm();
       loadData();
     } catch (error) {
       if (error.response?.status === 400) {
         alert(error.response.data.error ?? 'Stock insuficiente.');
+      } else if (error.response?.status === 404) {
+        alert('La venta ya no existe. Recarga la lista.');
       } else {
-        alert('Ha ocurrido un error al registrar la venta.');
+        alert('Ha ocurrido un error al guardar la venta.');
       }
     }
   }
@@ -97,6 +104,20 @@ function Sales() {
     setPaymentStatus('PAID');
     setStatus('COMPLETED');
     setItems([{ productId: '', quantity: 1 }]);
+    setEditingId(null);
+  }
+
+  function handleEdit(sale) {
+    setCustomerId(sale.customerId ?? '');
+    setPaymentMethod(sale.paymentMethod ?? 'CARD');
+    setPaymentStatus(sale.paymentStatus ?? 'PAID');
+    setStatus(sale.status ?? 'COMPLETED');
+    setItems(
+      sale.items.length > 0
+        ? sale.items.map((i) => ({ productId: String(i.productId), quantity: i.quantity }))
+        : [{ productId: '', quantity: 1 }]
+    );
+    setEditingId(sale.id);
   }
 
   async function handleDelete(id) {
@@ -187,8 +208,14 @@ function Sales() {
         </div>
 
         <button type="submit" className="bg-black text-white py-2 rounded">
-          Registrar venta
+          {editingId ? 'Guardar cambios' : 'Registrar venta'}
         </button>
+
+        {editingId && (
+          <button type="button" onClick={resetForm} className="border py-2 rounded">
+            Cancelar edición
+          </button>
+        )}
       </form>
 
       <table className="w-full text-left border-collapse">
@@ -217,7 +244,10 @@ function Sales() {
                 ))}
               </td>
               <td className="py-2">
-                <button onClick={() => handleDelete(s.id)} className="text-red-600">Eliminar</button>
+                <div className="flex gap-2">
+                  <button onClick={() => handleEdit(s)} className="text-blue-600">Editar</button>
+                  <button onClick={() => handleDelete(s.id)} className="text-red-600">Eliminar</button>
+                </div>
               </td>
             </tr>
           ))}

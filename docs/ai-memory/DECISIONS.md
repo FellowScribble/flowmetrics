@@ -202,12 +202,12 @@ FlowMetrics work does not require changing shell config, KDE/Plasma, or general 
 | D-02 SaaS funcional | Vigente | Ampliamente materializada en código (CI) |
 | D-03 “Comenzar gratis” falso | Vigente | El modal sigue siendo solo visual |
 | D-04 demo con BD real | Vigente | Implementado en código (CI) |
-| D-05 aislamiento por sesión | **Incumplida (parcial)** | Implementado, pero con huecos IDOR y sin proteger la plantilla |
+| D-05 aislamiento por sesión | **Vigente y cumplida** | IDOR (B1), plantilla (B2), `Company` (B3) y huecos de lectura/escritura multi-tenant (R16, 2026-10-14) corregidos |
 | D-06 monorepo | Vigente (ampliada) | Además de `frontend/` y `backend/` hay `database/`, `assets/`, `docs/` |
 | D-07 stack backend | Vigente | Coincide con `pom.xml` (Boot 4.1.0, Java 21 declarado) |
 | D-08 stack frontend | **Sustituida** | No es Next.js/TS; es React+Vite+JSX (ver detalle) |
 | D-09 Flyway | **Incumplida** | Flyway desactivado; SQL aplicado fuera de Flyway (ver detalle) |
-| D-10 `company_id` | Vigente (aplicación incompleta) | Diseño presente; enforcement con huecos (ligado a D-05) |
+| D-10 `company_id` | Vigente y cumplida | Enforcement multi-tenant desde la sesión; sin huecos (R16, 2026-10-14) |
 | D-11 Bruno/DBeaver | Vigente | Preferencia de trabajo; no hay colecciones en el repo |
 | D-12 paquetes bajo base | Vigente | Se añaden `context`, `filter`, `exception`, `util` |
 | D-13 `@PrePersist` timestamps | Vigente y cumplida | Presente en `Company.java` |
@@ -289,4 +289,216 @@ depende de una aplicación manual. Se documenta como hecho; se remite a D-09 com
   exigen sesión válida y solo devuelven la empresa propia; `POST`/`PUT`/`DELETE` se retiran de la API
   pública (el demo no los usa; verificado: el frontend no llama a `/api/companies`).
 **Evidencia:** `SaleServiceImplTest` (3), `CompanyServiceImplTest` (4) y `CompanyControllerTest` (4)
-→ 11 tests, 0 fallos (Mockito, sin BD). **Vigente.** Pendiente de verificación en runtime (Fase C).
+→ 11 tests, 0 fallos (Mockito, sin BD) y `mvn test` completo 12/12 con `contextLoads`. **Verificado
+en runtime el 2026-10-14 (VF):** IDOR ajeno → 404, empresa ajena → 404, escrituras públicas → 405,
+sin sesión → 404 (`PROJECT_STATUS.md` 4.5). **Vigente.**
+
+### D-24 — Fase C verificada en runtime y descarte del riesgo `LAZY` en el filtro
+**Verificado con el usuario (2026-10-14):** contra el backend en `:8080` con PostgreSQL `18.6`, se
+confirmó por HTTP y por consulta directa a la BD que (a) las sesiones demo están aisladas entre sí y
+de la plantilla; (b) `POST /api/demo/cleanup` purga una sesión caducada eliminando empresa e hijos sin
+dejar huérfanos y sin afectar a otras empresas; (c) `LazyInitializationException` **no** reproduce en
+`DemoSessionFilter` porque solo se llama `getId()` sobre el proxy Hibernate (identificador disponible
+sin inicializar). **Evidencia:** `PROJECT_STATUS.md` 4.5. Consecuencia: el riesgo 6 (parte `LAZY`) se
+cierra; la limpieza deja de ser un riesgo abierto. Se autorizó creación y borrado de datos demo de
+prueba, ya purgados.
+
+### D-25 — Reparar el Maven Wrapper con el archivo de propiedades faltante
+**Decidido con el usuario (2026-10-14):** el repo incluye `backend/mvnw`/`mvnw.cmd` versión **3.3.4**
+(estilo *only-script*, no requiere `maven-wrapper.jar`) pero **no** incluía
+`.mvn/wrapper/maven-wrapper.properties`. Se creó ese único archivo con
+`distributionType=only-script` y `distributionUrl` a `apache-maven-3.9.11-bin.zip` (3.9.11 = versión
+del `mvn` del sistema; proyectos Spring Boot 4.x son compatibles con 3.9.x). **Evidencia (PE/VF):**
+`./mvnw -v` → Maven `3.9.11`; `./mvnw -q -DskipTests package` → **EXIT 0**, jar ≈53,5 MB. No se añadió
+el jar del wrapper (el script 3.3.4 no lo usa). **Vigente.** No afecta a datos ni a la app.
+
+### D-26 — Estrategia de pruebas: BD `flowmetrics_test`, perfil `test` y separación unit/IT
+**Decidido con el usuario (2026-10-14), con 8 condiciones explícitas:** (1) los tests no tocan la BD de
+desarrollo; (2) el perfil `test` apunta solo a `flowmetrics_test`; (3) scheduler de limpieza
+desactivado en pruebas; (4) esquema de pruebas coherente con las entidades, sin mezclar autogeneración
+y carga SQL sin justificar; (5) ampliar cobertura (ventas, stock, recursos ajenos, aislamiento A/B,
+clonado, limpieza); (6) unitarios rápidos separados de integración con PostgreSQL; (7) registrar
+resultados reales; (8) no modificar la BD de desarrollo para facilitar las pruebas.
+
+**Implementación:**
+- BD **`flowmetrics_test`** creada con el **esquema real** obtenido por
+  `pg_dump --schema-only --no-owner --no-privileges flowmetrics` (solo lectura de dev). `ddl-auto=validate`.
+- `src/test/resources/application-test.properties` sobrescribe **solo la URL**; usuario/clave se
+  heredan de `application.properties` (no se duplican credenciales).
+- `config/SchedulingConfig` concentra `@EnableScheduling` con `@Profile("!test")`.
+- `pom.xml`: surefire para `*Test` (unitarios), **failsafe** para `*IT` (integración).
+- `AbstractIntegrationTest`: `@SpringBootTest @ActiveProfiles("test") @Transactional` (rollback).
+
+**Evidencia (PE):** `./mvnw clean test` → 12 unitarios; `./mvnw verify` → +10 IT, total 22, 0 fallos.
+`BackendApplicationIT` registra `jdbc:postgresql://localhost:5432/flowmetrics_test`. BD `flowmetrics`
+antes/después sin cambios (companies=3, demo_sessions=2, customers=15, sales=12); `flowmetrics_test`
+en 0 tras el run. **Vigente.**
+**Limitaciones:** `flowmetrics_test` no está versionada (se recrea con el comando documentado);
+Testcontainers descartado (Docker no disponible); hay que `clean` antes de `test`/`verify` por posible
+clase obsoleta en `target/` (riesgo 15).
+**Actualización 2026-10-14:** con `ErrorResponseIT` (riesgo 11) la cobertura de integración pasa a
+**12 IT** (total 24: 12 unitarios + 12 IT). El resto de la decisión sigue vigente.
+
+### D-27 — Riesgo 11: fijar `spring.web.error.*=never` para no filtrar detalle técnico
+**Decidido con el usuario (2026-10-14):** corregir la fuga de `trace`/`message` en respuestas de error.
+**Causa raíz (CI):** DevTools, cuando está activo (app local), aplica como *property source* de baja
+precedencia los defaults de `META-INF/spring-devtools.properties` de `spring-boot-autoconfigure-4.1.0.jar`:
+`defaults.spring.web.error.include-stacktrace=always` (+`include-message` y `include-binding-errors`).
+`DevToolsSettings` lee las claves `defaults.*`; el proceso es inactivo en tests y en producción
+(DevTools excluido), donde esos defaults ya son `never`. Se descartó cualquier config del proyecto,
+override por env/`-D`, fichero global de devtools y el restart classloader.
+**Fix (mínimo):** en `backend/src/main/resources/application.properties`:
+`spring.web.error.include-stacktrace=never`, `spring.web.error.include-message=never`,
+`spring.web.error.include-binding-errors=never` (nombres nuevos de Boot 4; los `server.error.*` están
+deprecados). **Evidencia (PE+VF):** matriz de runtime en 8081 (baseline fuga; `add-properties=false` no;
+`restart.enabled=false` sí fuga; `never` explícito no; fix con DevTools ON no) y prueba de regresión
+`ErrorResponseIT` (405/404 sin `trace`); `./mvnw clean verify` → 12 unitarios + 12 IT, 0 fallos; BD de
+desarrollo sin cambios. Detalle en `PROJECT_STATUS.md` 4.7. **Vigente.**
+
+### D-28 — Fase E.1: edición de ventas en el frontend
+**Decidido con el usuario (2026-10-14):** habilitar la edición de ventas en el frontend reutilizando el
+`PUT /api/sales/{id}` ya existente (no se toca el backend). **Implementación:** en
+`frontend/src/pages/Sales.jsx` se añade `editingId` + `handleEdit`/`resetForm` y `handleSubmit` alterna
+`updateSale`/`createSale`, con botones «Editar» (fila), «Guardar cambios» y «Cancelar edición»; mismo
+patrón que `Customers.jsx`. **Evidencia (PE+VF):** `npm run lint` 0 problemas; `npm run build` OK; flujo
+real contra `:8080` (crear 899,99/stock 24 → editar 1799,98/stock 23 → borrar restaura 25). Datos de
+prueba purgados (company 20); BD dev en línea base. Detalle en `PROJECT_STATUS.md` 4.8. **Vigente.**
+
+### D-29 — Fase E.4: poblar la documentación y corregir el README
+**Decidido con el usuario (2026-10-14):** completar la documentación del repositorio basándose en
+inspección real (no inventar). **Contenido:** `docs/api.md` (endpoints/DTO/códigos reales, con nota de
+scoping por sesión), `docs/arquitectura.md` (stack, capas, modelo demo, errores, CORS, frontend),
+`docs/base-datos.md` (9 tablas reales incl. `reports` sin entidad, FKs, provisión manual) y
+`docs/roadmap.md` (fases, pendientes, deuda técnica). `README.md` corregido (React+Vite; antes
+«Next.js»). **Evidencia (CI):** ficheros con contenido real (antes 0 bytes). **Hallazgo añadido:** los
+`GET` de clientes/categorías/productos/ventas sin sesión devuelven todos los registros (`findAll()`) →
+**riesgo 16**. **Vigente.**
+
+### D-30 — Fase E.2: Settings como panel real de sesión (opción A)
+**Decidido con el usuario (2026-10-14):** `Settings.jsx` deja de ser texto estático y muestra datos
+verídicos de la demo (empresa, `companyId`, caducidad absoluta y cuenta atrás en vivo) usando
+`useDemoSession` (`/api/demo/me`). **Se descarta** la opción B (reintroducir `PUT /api/companies/{id}`
+y editar la empresa) por revertir parte de B3 y ampliar alcance/riesgo. Solo frontend, sin cambios de
+backend. **Evidencia (PE):** `npm run lint` (0) y `npm run build` (OK). No hay VF visual automatizada
+(sin navegador/runner e2e). Detalle en `PROJECT_STATUS.md` 4.10. **Vigente.**
+
+### D-31 — Fase E.3: autorar migraciones Flyway sin activarlas
+**Decidido con el usuario (2026-10-14):** escribir las migraciones **sin activar** Flyway
+(`spring.flyway.enabled` sigue en `false`). **Motivo:** no tocar la BD de desarrollo ni ejecutar
+migraciones sin autorización (regla de AGENTS). **Contenido:** `V1__create_schema.sql` (las 9 tablas,
+constraints, índices y FKs con su `ON DELETE`, reconstruido desde `pg_dump` real) y
+`V2__seed_demo.sql` (plantilla `NovaTech Store` + catálogo/ventas, con `setval` de secuencias para que
+el clonado no colisione; corrige el bug del seed antiguo en `database/seeds/`). **Evidencia (PE+VF):**
+en BD desechable el esquema resultante es **idéntico** al real (diff `pg_dump` sin diferencias) y el
+arranque con `spring.flyway.enabled=true` aplicó V1+V2 y clonó la plantilla correctamente; las BD
+desechables se borraron y la BD dev no se tocó. **Pendiente:** activación en runtime + decisión de
+baseline de la BD existente (`spring.flyway.baseline-on-migrate` / `baseline-version`). **Vigente.**
+**Actualización 2026-10-14:** la estrategia de baseline quedó definida y verificada en **D-36**
+(`baseline-version=2`, perfil aislado `flyway`). Sigue **pendiente** activar Flyway en el entorno
+habitual (requiere autorización).
+
+### D-32 — Fase E.5: credenciales a variables de entorno obligatorias
+**Decidido con el usuario (2026-10-14):** las credenciales de PostgreSQL salen de
+`application.properties` (que deja de tener secretos) y pasan a variables de entorno:
+`spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/flowmetrics}`,
+`spring.datasource.username=${DB_USERNAME:postgres}` y `spring.datasource.password=${DB_PASSWORD}`
+(**obligatoria**). **Se descarta** la opción de `.env` con `spring.config.import`; el usuario prefiere
+variables de entorno. **Efecto:** tanto la app como los tests (el perfil `test` hereda las
+credenciales) requieren `DB_PASSWORD` en el entorno; sin ella no arrancan. **Evidencia (PE):** en
+copia aislada, `./mvnw clean verify` verde con las variables y fallo de arranque sin ellas. Los
+valores reales nunca se imprimieron ni se copiaron a ningún fichero. Detalle en `PROJECT_STATUS.md`
+4.12. **Vigente.**
+
+**Aclaración (2026-10-14):** los valores por defecto `DB_USERNAME=postgres` y
+`DB_URL=...localhost:5432/flowmetrics` son **intencionados** (solo para desarrollo local); la única
+variable estrictamente obligatoria es `DB_PASSWORD`. **En producción deben definirse explícitamente las
+tres** (`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`). Documentado en `README.md` y `docs/base-datos.md`.
+
+### D-33 — R13: archivar los SQL antiguos en `database/legacy/`
+**Decidido con el usuario (2026-10-14):** mover los tres SQL históricos de `database/` a
+`database/legacy/` conservando nombre y contenido, y añadir `database/legacy/README.md` indicando que
+son históricos, que **no** son la fuente de verdad y que **no** deben ejecutarse para crear una BD
+nueva. **Evidencia (CI):** `git mv` (historial conservado) y `sha256sum` idéntico antes/después. Se
+actualizaron las referencias en `README.md`, `AGENTS.md`, `docs/base-datos.md`, `docs/roadmap.md`,
+`docs/arquitectura.md` y `NEXT_STEPS.md`. No se tocaron las migraciones de Flyway. **Cierra el riesgo
+13. Vigente.**
+
+### D-34 — R15: `clean` obligatorio antes de `test`/`verify` (solo documentación)
+**Decidido con el usuario (2026-10-14):** documentar el uso de `clean` para evitar clases obsoletas en
+`target/` (riesgo 15), **sin** modificar `pom.xml`. **Evidencia (CI):** nota añadida a `README.md`,
+`AGENTS.md` y `docs/arquitectura.md`. El riesgo es procedimental; queda mitigado por documentación (no
+eliminado por código). **Mitigado.**
+
+### D-35 — R16: exigir sesión demo y derivar el `companyId` del servidor
+**Decidido con el usuario (2026-10-14):** exigir una sesión demo válida en **todas** las operaciones de
+datos (clientes, categorías, productos, ventas, actividad e informes) y obtener el `companyId`
+autorizado **solo** de la sesión ({@code SessionGuard} → `UnauthorizedException` → **401**); el
+`?companyId=` del cliente se ignora y el `companyId` del cuerpo no autoriza. **Implementación:**
+`SessionGuard` (`context/`), `UnauthorizedException` + handler 401, reescritura de
+`CustomerController`, `CategoryController`, `ProductController`, `SaleController`, `ReportController`
+y `ActivityController` (se eliminó el fallback `findAll()`); `CompanyController` ya exigía sesión
+(B3, sin cambios). Relaciones: `ProductServiceImpl` valida que la categoría sea de la empresa;
+`SaleServiceImpl` ya validaba cliente y producto. **Evidencia (PE):** `TenantIsolationIT` (MockMvc, 8
+casos: sin sesión → 401 en lecturas y escrituras; con sesión A solo ve A; `{id}` y `?companyId=` de B
+→ 404/ignorado; escritura con `companyId` de B se crea en A; categoría de B → 404). `./mvnw clean
+verify` en copia aislada → **12 unitarios + 20 IT, 0 fallos**; `flowmetrics_test` quedó a 0 filas y la
+BD dev sin cambios. **Cierra el riesgo 16. Vigente.**
+
+### D-36 — Fase E.3: estrategia de baseline de Flyway (preparada; activada en desarrollo)
+**Decidido con el usuario (2026-10-14):** adoptar Flyway en las bases **existentes** mediante
+`spring.flyway.baseline-on-migrate=true` + `spring.flyway.baseline-version=2`, dejando la activación
+como un interruptor **explícito y aislado** (perfil `flyway` en
+`backend/src/main/resources/application-flyway.properties`: `SPRING_PROFILES_ACTIVE=flyway`). El
+arranque habitual sigue con `spring.flyway.enabled=false`; la BD dev no se toca.
+
+**Por qué esta configuración:**
+- Base **nueva/vacía** → Flyway aplica **V1 (esquema) + V2 (semilla demo)** desde cero. Verificado: con
+  un esquema vacío, `baseline-on-migrate=true` **no** añade baseline; migra normalmente.
+- Base **existente** (no vacía, sin `flyway_schema_history`) → se marca con **baseline en la versión 2**
+  y **no** reejecuta V1/V2 ⇒ no recrea tablas ni duplica la semilla.
+- Base **ya gestionada** por Flyway → solo aplica migraciones nuevas (V3+).
+- Una **única** configuración sirve para instalación nueva y existente; no hace falta distinguirla a
+  mano ni usar `baseline()` manual.
+
+**Por qué baseline = 2 (y no 1):** la BD `flowmetrics` ya contiene lo que producen V1+V2. Se contrastó
+que la plantilla real (empresa 1) coincide **fila a fila** con V2 (categorías, productos, clientes,
+ventas y líneas; solo difieren `sale_date`/timestamps) y que el esquema es idéntico. Con
+`baseline-version=1` Flyway baselinaría en 1 e intentaría aplicar V2 → **fallo por PK duplicada**
+(empresa plantilla id=1), verificado.
+
+**V1/V2:** no se modifican; siguen siendo la fuente de verdad. Para una instalación nueva se ejecutan
+en orden; en una existente quedan por debajo del baseline y no se ejecutan. **No** conviene fusionarlas
+ni separarlas más: V1 = esquema y V2 = datos ya están separadas (permitiría, si algún día se quiere un
+entorno sin semilla, usar `spring.flyway.target=1` solo-esquema).
+
+**Evidencia (PE + VF)** en BD desechables `fm_e3_*` (todas **borradas** al terminar; la BD dev
+`flowmetrics` no se tocó):
+- Esquema vacío → V1+V2 aplicados en orden; 10 tablas (9 + historial); plantilla `NovaTech Store`;
+  secuencias coherentes (`setval` ⇒ próximo = max+1); `POST /api/demo/start` clona la plantilla
+  (empresa 2 con 4/9/5/4 hijos); reinicio → "Schema is up to date. No migration necessary", sin
+  duplicados (companies=2, customers=10, sales=8, historial=2).
+- Esquema existente sin historial → `Successfully baselined schema with version: 2`, "No migration
+  necessary", datos intactos (companies=1, customers=5, products=9, sales=4); demo clona igualmente.
+- **Sin** `baseline-on-migrate` → falla: "Found non-empty schema(s) \"public\" but no schema history
+  table".
+- `baseline-version=1` (por defecto) → baselina v1 e intenta V2 → falla con `SQL State 23505`
+  (violación única, PK del template), "Changes successfully rolled back".
+- `pg_dump --schema-only` de la BD creada por Flyway == `flowmetrics` (**idéntico**, salvo el token
+  aleatorio `\restrict`/`\unrestrict` que pg_dump 18 genera por dump).
+
+**Limitación:** `baseline-version=2` **asume** que cualquier BD existente ya está en el estado V1+V2.
+Si una BD preexistente difiere (esquema o semilla), el baseline **enmascara** esa deriva. Para
+`flowmetrics` se verificó que no hay deriva. En un futuro, si se adopta una BD que no coincida, habría
+que revisar la versión de baseline o corregirla con una migración V3+.
+
+**Actualización 2026-10-14 (activación autorizada):** el usuario autorizó activar Flyway en el entorno
+de **desarrollo**, con estas condiciones: destino exclusivamente `flowmetrics`, sin tocar V1/V2 ni la
+versión de baseline, sin `clean verify`, sin recrear/borrar BDs, sin producción y sin commits.
+Ejecutado y verificado: arranque con `SPRING_PROFILES_ACTIVE=flyway` contra
+`jdbc:postgresql://localhost:5432/flowmetrics` → `Successfully baselined schema with version: 2`,
+`Schema "public" is up to date. No migration necessary.` (V1/V2 **no** ejecutados), `flyway_schema_history`
+con 1 fila (BASELINE, version=2) y **0** migraciones SQL, datos intactos
+(companies=3, categories=12, products=27, customers=15, sales=12, sale_items=18, demo_sessions=2) y app
+respondiendo (401/404 esperados). `flowmetrics_test` intacta. El arranque habitual sigue con
+`spring.flyway.enabled=false`. Detalle en `PROJECT_STATUS.md` 4.15.
+**Vigente y activada en desarrollo (producción/otras bases: pendiente de decisión).**

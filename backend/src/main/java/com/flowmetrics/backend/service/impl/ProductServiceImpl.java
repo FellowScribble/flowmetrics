@@ -69,6 +69,10 @@ public class ProductServiceImpl implements ProductService {
         Category category = categoryRepository.findById(dto.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id " + dto.getCategoryId()));
 
+        if (!category.getCompany().getId().equals(company.getId())) {
+            throw new ResourceNotFoundException("Categoría no encontrada con id " + dto.getCategoryId());
+        }
+
         Product product = new Product();
         product.setCompany(company);
         product.setCategory(category);
@@ -104,6 +108,10 @@ public class ProductServiceImpl implements ProductService {
 
         Category category = categoryRepository.findById(dto.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id " + dto.getCategoryId()));
+
+        if (!category.getCompany().getId().equals(company.getId())) {
+            throw new ResourceNotFoundException("Categoría no encontrada con id " + dto.getCategoryId());
+        }
 
         product.setCompany(company);
         product.setCategory(category);

@@ -8,37 +8,32 @@ import com.flowmetrics.backend.dto.SalesSummaryDTO;
 import com.flowmetrics.backend.dto.MonthlySalesDTO;
 import com.flowmetrics.backend.dto.TopProductDTO;
 import com.flowmetrics.backend.service.ReportService;
-import com.flowmetrics.backend.context.DemoContext;
+import com.flowmetrics.backend.context.SessionGuard;
 
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
 
     private final ReportService reportService;
-    private final DemoContext demoContext;
+    private final SessionGuard sessionGuard;
 
-    public ReportController(ReportService reportService, DemoContext demoContext) {
+    public ReportController(ReportService reportService, SessionGuard sessionGuard) {
         this.reportService = reportService;
-        this.demoContext = demoContext;
+        this.sessionGuard = sessionGuard;
     }
 
     @GetMapping("/summary")
-    public SalesSummaryDTO getSummary(@RequestParam(required = false) Long companyId) {
-        return reportService.getSummary(resolveCompanyId(companyId));
+    public SalesSummaryDTO getSummary() {
+        return reportService.getSummary(sessionGuard.requireCompanyId());
     }
 
     @GetMapping("/sales-by-month")
-    public List<MonthlySalesDTO> getSalesByMonth(@RequestParam(required = false) Long companyId) {
-        return reportService.getSalesByMonth(resolveCompanyId(companyId));
+    public List<MonthlySalesDTO> getSalesByMonth() {
+        return reportService.getSalesByMonth(sessionGuard.requireCompanyId());
     }
 
     @GetMapping("/top-products")
-    public List<TopProductDTO> getTopProducts(@RequestParam(required = false) Long companyId) {
-        return reportService.getTopProducts(resolveCompanyId(companyId));
-    }
-
-    private Long resolveCompanyId(Long companyId) {
-        Long sessionCompanyId = demoContext.getCompanyId();
-        return (sessionCompanyId != null) ? sessionCompanyId : companyId;
+    public List<TopProductDTO> getTopProducts() {
+        return reportService.getTopProducts(sessionGuard.requireCompanyId());
     }
 }

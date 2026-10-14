@@ -8,83 +8,52 @@ import org.springframework.http.ResponseEntity;
 import com.flowmetrics.backend.dto.SaleDTO;
 import com.flowmetrics.backend.dto.CreateSaleDTO;
 import com.flowmetrics.backend.service.SaleService;
-import com.flowmetrics.backend.context.DemoContext;
-import com.flowmetrics.backend.exception.ResourceNotFoundException;
+import com.flowmetrics.backend.context.SessionGuard;
 
 @RestController
 public class SaleController {
 
     private final SaleService saleService;
-    private final DemoContext demoContext;
+    private final SessionGuard sessionGuard;
 
-    public SaleController(SaleService saleService, DemoContext demoContext) {
+    public SaleController(SaleService saleService, SessionGuard sessionGuard) {
         this.saleService = saleService;
-        this.demoContext = demoContext;
+        this.sessionGuard = sessionGuard;
     }
 
     @GetMapping("/api/sales")
-    public List<SaleDTO> getSales(@RequestParam(required = false) Long companyId) {
-
-        Long resolvedCompanyId = demoContext.getCompanyId();
-
-        if (resolvedCompanyId == null) {
-            resolvedCompanyId = companyId;
-        }
-
-        if (resolvedCompanyId != null) {
-            return saleService.findByCompany(resolvedCompanyId);
-        }
-
-        return saleService.findAll();
+    public List<SaleDTO> getSales() {
+        return saleService.findByCompany(sessionGuard.requireCompanyId());
     }
 
     @GetMapping("/api/sales/{id}")
     public SaleDTO getSaleById(@PathVariable Long id) {
         SaleDTO sale = saleService.findById(id);
-        checkOwnership(sale.getCompanyId(), id);
+        sessionGuard.requireOwnership(sale.getCompanyId(), "Venta", id);
         return sale;
     }
 
     @PostMapping("/api/sales")
     public SaleDTO createSale(@RequestBody CreateSaleDTO dto) {
-
-        Long sessionCompanyId = demoContext.getCompanyId();
-        if (sessionCompanyId != null) {
-            dto.setCompanyId(sessionCompanyId);
-        }
-
+        dto.setCompanyId(sessionGuard.requireCompanyId());
         return saleService.create(dto);
     }
 
     @PutMapping("/api/sales/{id}")
     public SaleDTO updateSale(@PathVariable Long id, @RequestBody CreateSaleDTO dto) {
-
         SaleDTO existing = saleService.findById(id);
-        checkOwnership(existing.getCompanyId(), id);
+        sessionGuard.requireOwnership(existing.getCompanyId(), "Venta", id);
 
-        Long sessionCompanyId = demoContext.getCompanyId();
-        if (sessionCompanyId != null) {
-            dto.setCompanyId(sessionCompanyId);
-        }
-
+        dto.setCompanyId(sessionGuard.requireCompanyId());
         return saleService.update(id, dto);
     }
 
     @DeleteMapping("/api/sales/{id}")
     public ResponseEntity<Void> deleteSale(@PathVariable Long id) {
-
         SaleDTO existing = saleService.findById(id);
-        checkOwnership(existing.getCompanyId(), id);
+        sessionGuard.requireOwnership(existing.getCompanyId(), "Venta", id);
 
         saleService.delete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    private void checkOwnership(Long resourceCompanyId, Long resourceId) {
-        Long sessionCompanyId = demoContext.getCompanyId();
-
-        if (sessionCompanyId != null && !sessionCompanyId.equals(resourceCompanyId)) {
-            throw new ResourceNotFoundException("Venta no encontrada con id " + resourceId);
-        }
     }
 }

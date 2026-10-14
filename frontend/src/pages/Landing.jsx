@@ -848,15 +848,15 @@ export default function Landing() {
               >
                 <a href="mailto:tu-correo@example.com" className="flex items-center gap-2 hover:text-purple-300 transition-colors truncate">
                   <Mail className="w-3.5 h-3.5 shrink-0 text-purple-400" />
-                  <span className="truncate">tu-correo@example.com</span>
+                  <span className="truncate">andreavierahernandez1@gmail.com</span>
                 </a>
                 <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-purple-300 transition-colors">
                   <ExternalLink className="w-3.5 h-3.5 shrink-0 text-purple-400" />
-                  <span>LinkedIn Profile</span>
+                  <span>Perfil Linkedin</span>
                 </a>
                 <a href="https://github.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-purple-300 transition-colors">
                   <ExternalLink className="w-3.5 h-3.5 shrink-0 text-purple-400" />
-                  <span>GitHub Repository</span>
+                  <span>Repositorio GitHub</span>
                 </a>
               </motion.div>
             )}
