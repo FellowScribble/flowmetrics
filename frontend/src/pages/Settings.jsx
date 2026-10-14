@@ -1,59 +1,66 @@
 import { useEffect, useState } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import { useDemoSession } from '../context/useDemoSession';
+import Card from '../components/ui/Card';
+import PageHeader from '../components/ui/PageHeader';
+import EmptyState from '../components/ui/EmptyState';
+import { useFormat } from '../lib/useFormat';
+import { useLanguage } from '../i18n/useLanguage';
 
 function Settings() {
-  const { session, loading } = useDemoSession();
-
-  if (loading) return <p>Cargando configuración...</p>;
+  const { session } = useDemoSession();
+  const { t } = useLanguage();
+  const { dateTime } = useFormat();
 
   if (!session) {
     return (
       <div>
-        <h1 className="text-2xl font-bold mb-6">Configuración</h1>
-        <p className="text-gray-600">No hay una sesión de demostración activa.</p>
+        <PageHeader title={t('settings.title')} />
+        <EmptyState
+          title={t('settings.noSessionTitle')}
+          description={t('settings.noSessionDescription')}
+        />
       </div>
     );
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Configuración</h1>
+      <PageHeader title={t('settings.title')} description={t('settings.description')} />
 
-      <div className="grid grid-cols-3 gap-8">
-        <div className="col-span-2 flex flex-col gap-6">
-          <section>
-            <h2 className="text-lg font-semibold mb-3">Sesión de demostración</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <InfoCard label="Empresa" value={session.companyName} />
-              <InfoCard label="Identificador" value={session.companyId} />
-              <InfoCard label="Caduca" value={formatDateTime(session.expiresAt)} />
-              <InfoCard label="Tiempo restante" value={<Remaining expiresAt={session.expiresAt} />} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <Card className="p-5">
+            <h2 className="mb-4 text-lg font-semibold text-zinc-100">
+              {t('settings.sessionTitle')}
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <InfoCard label={t('settings.infoCompany')} value={session.companyName} />
+              <InfoCard label={t('settings.infoId')} value={session.companyId} />
+              <InfoCard label={t('settings.infoExpires')} value={dateTime(session.expiresAt)} />
+              <InfoCard
+                label={t('settings.infoRemaining')}
+                value={<Remaining expiresAt={session.expiresAt} />}
+              />
             </div>
-          </section>
+          </Card>
 
-          <section>
-            <h2 className="text-lg font-semibold mb-2">Sobre esta sección</h2>
-            <p className="text-gray-600 mb-4">
-              En una versión completa de FlowMetrics, aquí podrías gestionar ajustes
-              de la empresa: datos fiscales, moneda, usuarios y permisos, notificaciones,
-              integraciones con otras herramientas, y preferencias generales del negocio.
-            </p>
-            <p className="text-gray-600">
-              Como esta es una demostración pública, estas opciones no están activas —
-              cada visitante trabaja sobre una copia temporal de datos de ejemplo,
-              pensada para mostrar cómo se comporta la aplicación, no para configurarla
-              de forma permanente.
-            </p>
-          </section>
+          <Card className="p-5">
+            <h2 className="mb-2 text-lg font-semibold text-zinc-100">
+              {t('settings.aboutTitle')}
+            </h2>
+            <p className="mb-4 text-sm text-zinc-400">{t('settings.aboutParagraph1')}</p>
+            <p className="text-sm text-zinc-400">{t('settings.aboutParagraph2')}</p>
+          </Card>
         </div>
 
-        <div className="border rounded-lg p-4 bg-gray-50 text-gray-500 text-sm h-fit">
-          <p className="font-medium mb-1">Modo demostración</p>
-          <p>
-            Estás usando una copia temporal de datos de ejemplo. Los cambios que hagas
-            no se conservan de forma permanente y esta sesión caduca en el tiempo indicado.
+        <Card className="h-fit border-brand-900/60 bg-brand-950/40 p-4 text-sm text-brand-300">
+          <p className="mb-1 flex items-center gap-2 font-medium">
+            <CheckCircle2 className="h-4 w-4" />
+            {t('settings.demoModeTitle')}
           </p>
-        </div>
+          <p className="text-brand-400">{t('settings.demoModeText')}</p>
+        </Card>
       </div>
     </div>
   );
@@ -61,14 +68,15 @@ function Settings() {
 
 function InfoCard({ label, value }) {
   return (
-    <div className="border rounded-lg p-4">
-      <div className="text-sm text-gray-500">{label}</div>
-      <div className="text-lg font-semibold break-all">{value}</div>
+    <div className="rounded-lg border border-zinc-800 p-4">
+      <div className="text-sm text-zinc-400">{label}</div>
+      <div className="mt-0.5 break-all text-lg font-semibold text-zinc-100">{value}</div>
     </div>
   );
 }
 
 function Remaining({ expiresAt }) {
+  const { t } = useLanguage();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -78,23 +86,17 @@ function Remaining({ expiresAt }) {
 
   const ms = new Date(expiresAt).getTime() - now;
   if (Number.isNaN(ms)) return '—';
-  if (ms <= 0) return 'Caducada';
+  if (ms <= 0) return t('settings.expired');
 
   const totalSeconds = Math.floor(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  return `${hours} h ${pad(minutes)} min ${pad(seconds)} s`;
+  return t('settings.duration', { h: hours, m: pad(minutes), s: pad(seconds) });
 }
 
 function pad(value) {
   return String(value).padStart(2, '0');
-}
-
-function formatDateTime(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
 }
 
 export default Settings;

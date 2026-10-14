@@ -1,29 +1,55 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getCurrentSession, startDemoSession } from '../api/demo';
 import { DemoSessionContext } from './DemoSessionContext';
+
+async function resolveDemoSession() {
+  try {
+    return await getCurrentSession();
+  } catch {
+    return await startDemoSession();
+  }
+}
 
 export function DemoSessionProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function initSession() {
       try {
-        const current = await getCurrentSession();
-        setSession(current);
-      } catch {
-        const started = await startDemoSession();
-        setSession(started);
+        const resolved = await resolveDemoSession();
+        if (cancelled) return;
+        setSession(resolved);
+        setError(null);
+      } catch (initError) {
+        if (cancelled) return;
+        setError(initError);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     initSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const retry = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    resolveDemoSession()
+      .then((resolved) => setSession(resolved))
+      .catch((retryError) => setError(retryError))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <DemoSessionContext.Provider value={{ session, loading }}>
+    <DemoSessionContext.Provider value={{ session, loading, error, retry }}>
       {children}
     </DemoSessionContext.Provider>
   );

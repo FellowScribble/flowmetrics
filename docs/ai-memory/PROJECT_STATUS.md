@@ -15,7 +15,19 @@
 
 > Última sesión (OpenCode). Retomar por aquí.
 
-- **Objetivo de la sesión:** corregir los 5 errores de ESLint del frontend. **Estado: cerrado.**
+- **Última tarea (2026-10-14): internacionalización ES/EN de toda la app + ajustes del Landing, PE + VF
+  parcial.** Ver **4.19** y **4.20**. Infra `src/i18n/` (contexto, provider, `useLanguage`,
+  `LanguageToggle`, `translations.js`), `format.js` locale-aware + `useFormat`; traducidas layout/UI y
+  las 8 páginas; `App` envuelto con `LanguageProvider`. Landing: **logo no clicable**, **header sticky
+  al bajar / oculto al subir** (aviso «Proyecto Portfolio» siempre visible), **tarjeta de
+  desarrolladora que sube para no tapar el footer** y **conmutador ES/EN**. `lint` 0 y `build` OK;
+  módulos transformados sin error por Vite. **Sin commits.** Pendiente: **revisión visual del usuario**
+  (sin navegador en la sesión).
+- **Tarea previa (2026-10-14): semilla enriquecida V3 de la demo, PE + VF.** Ver **4.18**.
+  `V3__seed_demo_more.sql` (+8 clientes, +8 productos, ~60 ventas/12 meses) verificada en PG desechable
+  y aplicada en `flowmetrics` (dev). **Sin commits.**
+- **Tarea previa (2026-10-14): rediseño de UI (P0+P1+P2), PE + VF parcial.** Ver **4.16**.
+- **Tarea previa (2026-10-14): corrección de los 5 errores de ESLint del frontend.** **Estado: cerrado.**
 - **Verificado (PE):** `npm run lint` → **0 problemas**; `npm run build` → **OK** (Vite 8.3.0,
   2910 módulos, `dist/` generado; se mantiene el aviso de chunk > 500 kB).
 - **Cambios (solo frontend; ningún cambio de comportamiento):**
@@ -648,6 +660,145 @@ perfil `test`, `Accept: application/json`): `GET /api/demo/cleanup` → 405 y `G
   **Confirmado por el usuario (2026-10-14): el arranque desde Eclipse funciona** con el perfil `flyway`
   (el usuario lo comprobó). Eclipse queda como entorno habitual de desarrollo.
 
+### 4.16 Rediseño de UI: sistema de diseño, corrección de bugs y responsive (2026-10-14, PE + VF parcial)
+
+- **Alcance aprobado por el usuario (tres bloques):** **P0** (bugs + navegación), **P1** (sistema de
+  diseño + estilado) y **P2** (responsive/móvil + marca).
+- **Nuevos archivos (frontend):**
+  - `src/index.css`: tokens de diseño `@theme` (paleta de marca morada `--color-brand-50..950`), base
+    `body` y `:focus-visible`.
+  - `src/lib/format.js`: `formatCurrency` (es-ES/EUR), `formatDate`, `formatDateTime` y etiquetas de
+    dominio `saleStatus`/`paymentStatus`/`paymentMethod` (traducen `COMPLETED`/`PAID`/…).
+  - `src/lib/cn.js`: helper de clases; `src/lib/useAsyncData.js`: hook de carga con `loading`/`error`/
+    `refresh`/`retry` (satisface las reglas del compilador de React).
+  - `src/components/ui/`: `Button`, `Input`, `Select`, `Card`, `Badge`, `Spinner`, `Skeleton`,
+    `EmptyState`, `ErrorState`, `PageHeader`, `Modal`, `toast/` (`ToastProvider`+`useToast`) y
+    `confirm/` (`ConfirmProvider`+`useConfirm`).
+  - `src/pages/NotFound.jsx` (404).
+- **Cambios:** `App.jsx` (envuelve con `ToastProvider`+`ConfirmProvider`; **index** `/demo` → redirect a
+  `dashboard`; **404** dentro y fuera del layout); `DemoSessionProvider.jsx` (estado `error` + `retry`);
+  `AppLayout.jsx` (spinner, estado de error con reintento, header móvil con menú, aviso de marca);
+  `Sidebar.jsx` (**Categorías** añadida al menú, drawer responsive); `api/client.js` (`baseURL` desde
+  `VITE_API_URL` con fallback a `http://localhost:8080/api`).
+- **7 páginas reescritas** (`Dashboard`, `Reports`, `Customers`, `Products`, `Categories`, `Sales`,
+  `Settings`): estados de carga (skeleton) y de error con reintento, estado vacío; **toasts** en lugar de
+  `alert()`; **diálogo de confirmación** en lugar de `confirm()`; enums traducidos; moneda con
+  separador de miles; grids y tablas **responsivas** (scroll horizontal); gráficas con el color de marca
+  y tooltips formateados en EUR.
+- **Marca/metadatos:** `index.html` → `lang="es"`, título, `description` y `theme-color`; favicon de
+  marca (sustituye al logo de Vite). **Eliminados** por no usarse: `src/App.css`,
+  `src/assets/{hero.png,react.svg,vite.svg}` y `public/icons.svg` (recuperables vía Git). **Landing:**
+  `mailto` corregido al email realmente mostrado y enlace de GitHub apuntando al repo real
+  (`github.com/FellowScribble/flowmetrics`).
+- **Pruebas ejecutadas (PE):** `npm run lint` → **0 problemas**; `npm run build` → **OK** (Vite 8.3.0,
+  2931 módulos; persiste el aviso de chunk > 500 kB).
+- **Verificado en runtime (VF parcial):** el dev server Vite `:5173` sirve `index.html` con
+  `lang="es"` y el título nuevo; el backend Eclipse `:8080` responde `POST /api/demo/start` **200**,
+  `GET /api/demo/me` **200** (`NovaTech Store`), `GET /api/reports/summary` **200** y
+  `GET /api/customers` **200** (5 clientes).
+- **No verificado / pendiente:** el **render visual** en navegador no se ha comprobado (no hay
+  navegador en la sesión); el enlace de **LinkedIn** del footer se deja como está por decisión del
+  usuario (`linkedin.com` genérico); la unificación estética Landing (oscura) vs. app (clara) queda fuera
+  de este cambio. El smoke test creó una **sesión demo** temporal adicional.
+- **Sin commits** (el usuario revisa antes de commitear). Cambios pendientes de revisión del usuario.
+
+### 4.17 Demostración en tema oscuro (paleta del Landing) y logo enlazado (2026-10-14, PE + VF parcial)
+
+- **Petición del usuario:** (1) que al pulsar el logo **FlowMetrics** de la demo se vuelva a la landing;
+  (2) que el fondo de la **demo** sea **oscuro y legible como la landing**, con la **misma paleta**.
+- **Paleta tomada del Landing:** base `bg-black`/`text-zinc-100`; superficies `bg-zinc-900`; bordes
+  `zinc-800`; acentos morados `brand`/`purple-300/400` y `bg-purple-950`.
+- **Cambios:**
+  - `src/index.css`: `body` ahora `bg-black text-zinc-100`; `:focus-visible` con `ring-offset-black`.
+  - `src/components/ui/*`: `Card`/`Input`/`Select`/`Badge`/`Skeleton`/`EmptyState`/`ErrorState`/
+    `Modal`/`PageHeader`/`Button`/`Spinner` y `toast` re-estilados en oscuro (bordes `zinc-800`,
+    textos `zinc-100/300/400`, tonos de badge oscuros).
+  - `AppLayout`/`Sidebar`: fondo `bg-black`, superficies `bg-zinc-950`, navegación activa
+    `bg-brand-950 text-brand-300`. El **logo FlowMetrics** (sidebar y cabecera móvil) es ahora un
+    `<Link to="/">` que vuelve a la landing.
+  - 7 páginas: clases de color migradas a la paleta oscura; encabezados de tabla `bg-zinc-950/60`;
+    gráficas con color de marca `#a855f7`, grid `#27272a`, ejes `#a1a1aa` y tooltip oscuro.
+- **Pruebas (PE):** `npm run lint` → **0 problemas**; `npm run build` → **OK**.
+- **Verificado (VF parcial):** dev server Vite `:5173` responde **200**.
+- **No verificado:** el render visual en navegador (sin navegador en la sesión). **Sin commits.**
+
+### 4.18 V3 — semilla enriquecida de la demo (2026-10-14, PE + VF)
+
+- **Petición del usuario:** que la demo tenga **más datos** (clientes, productos y un histórico de
+  ventas de ~12 meses) para que los informes y gráficas sean realistas.
+- **Nuevo archivo:** `backend/src/main/resources/db/migration/V3__seed_demo_more.sql` (bloque
+  `DO $$ ... $$`). Localiza la plantilla con
+  `SELECT id FROM companies WHERE is_template=true ORDER BY id LIMIT 1` (mismo criterio que
+  `DemoSessionServiceImpl.findByIsTemplateTrue().get(0)`), **sin ids explícitos** (los asigna la
+  secuencia) y referenciando por **nombre** dentro de la plantilla; `setval` al final. Añade
+  **+8 clientes**, **+8 productos** (3 con stock bajo) y **~60 ventas** (5/mes × 12 meses, 1..3 líneas);
+  totales recalculados desde las líneas. `payment_method` CARD/CASH/TRANSFER, `payment_status`
+  PAID/PENDING y `status` COMPLETED/PENDING (se evita CANCELLED para no distorsionar ingresos).
+- **Bug corregido durante la prueba:** ambigüedad variable/columna → renombrada `sale_id`→`v_sale_id`
+  y calificado el `UPDATE sales s SET total = COALESCE((SELECT SUM(si.subtotal) FROM sale_items si
+  WHERE si.sale_id = s.id),0) WHERE s.id = v_sale_id`.
+- **Prueba (PE):** PostgreSQL desechable (`initdb -A trust`, puerto 55432, en `/tmp/opencode/pgtest`),
+  V1+V2+V3 aplicadas sin error; backend levantado contra él, `POST /api/demo/start` clona
+  13 clientes / 17 productos / 64 ventas / 126 líneas / 13 meses; `summary` coherente
+  (revenueThisMonth, activeCustomers 13, lowStockProducts 3); 0 incoherencias de total; secuencias
+  avanzan. Entorno desechable limpiado.
+- **Verificado (VF, dev):** reinicio de Eclipse con perfil `flyway` → V3 aplicada en `flowmetrics`
+  (solo V3; V1/V2 no re-ejecutadas). Sesión demo nueva: 13 clientes, 64 ventas, 13 meses,
+  lowStockProducts 3. **Nota:** las sesiones demo antiguas conservan los datos previos; hay que
+  **iniciar una demo nueva** para verlos.
+- **Sin commits.**
+
+### 4.19 Internacionalización (ES/EN) de toda la app (2026-10-14, PE + VF parcial)
+
+- **Decisión del usuario (vía pregunta):** (1) header del Landing **fijo al bajar y oculto al subir**
+  manteniendo el aviso «Proyecto Portfolio»; (2) traducción de **toda la app** (Landing + demo);
+  (3) idioma por defecto **español**.
+- **Infra nueva (`frontend/src/i18n/`):**
+  - `translations.js`: diccionarios completos `es`/`en` (namespaces `common`, `aria`, `nav`, `layout`,
+    `errorState`, `confirm`, `dashboard`, `customers`, `products`, `categories`, `sales`, `reports`,
+    `settings`, `notFound`, `enums`, `landing`), helpers `getByPath`, `SUPPORTED_LANGUAGES`,
+    `DEFAULT_LANGUAGE`; `t()` con interpolación `{{var}}`.
+  - `LanguageContext.js` (`createContext`), `LanguageProvider.jsx` (estado `language` persistido en
+    `localStorage` clave `flowmetrics.language`, fija `document.documentElement.lang`, expone
+    `t`/`tEnum`/`toggleLanguage`/`locale`), `useLanguage.js` (hook) y `LanguageToggle.jsx`
+    (conmutador ES/EN segmentado).
+- **Formato localizado:** `src/lib/format.js` refactorizado a **locale-aware**
+  (`formatCurrency/Date/DateTime(value, locale='es-ES')` con caché de `Intl`) + tonos de estado de
+  venta/pago; nuevo `src/lib/useFormat.js` que ata `currency`/`date`/`dateTime`/`saleStatus`/
+  `paymentStatus`/`paymentMethod` al idioma activo (las etiquetas de enum salen de las traducciones).
+- **Integración:** `App.jsx` envuelve todo con `LanguageProvider`. Traducidos `AppLayout`, `Sidebar`
+  (+ `LanguageToggle`), `ErrorState`, `ConfirmProvider` (defaults), `Modal` (aria), `ToastProvider`
+  (aria) y las 8 páginas (`Dashboard`, `Customers`, `Products`, `Categories`, `Sales`, `Reports`,
+  `Settings`, `NotFound`). La demo usa ES por defecto (p. ej. «Dashboard» → **«Panel»**).
+- **Pruebas (PE):** `npm run lint` → **0 problemas**; `npm run build` → **OK** (Vite 8.3.0, 2937
+  módulos; persiste el aviso de chunk > 500 kB).
+- **Verificado (VF parcial):** el dev server Vite `:5173` transforma sin error los módulos nuevos
+  (`/src/i18n/*`, `/src/lib/useFormat.js`, `/src/pages/Landing.jsx`, `/src/components/layout/AppLayout.jsx`,
+  `main.jsx`); backend `:8080` responde `POST /api/demo/start` (200, `NovaTech Store`).
+- **No verificado:** el **render visual** del conmutador y de los textos traducidos (sin navegador en
+  la sesión). **Sin commits.**
+
+### 4.20 Landing: logo no clicable, header sticky y tarjeta de desarrolladora (2026-10-14, PE + VF parcial)
+
+- **Cambios en `frontend/src/pages/Landing.jsx`:**
+  - **Logo FlowMetrics no clicable** (retirados `onClick`/`cursor-pointer`).
+  - **Header sticky** que «sigue la vista»: se muestra al **bajar** y se **oculta al subir**
+    (`y: '-100%'`), mientras el **aviso «Proyecto Portfolio» permanece siempre visible**. Se unificó
+    aviso + header en un contenedor `sticky top-0`; el aviso lleva `bg-black` opaco y `z-10` para
+    ocultar el header al deslizarse. Raíz con `overflow-x-clip` (en vez de `overflow-x-hidden`) para
+    no romper `position: sticky`.
+  - **Tarjeta de desarrolladora** (`DevCard`, extraída a componente propio): deja de fijarse a
+    `bottom-6` fijo y **sube lo justo para no tapar el footer** (calcula el solape con el footer
+    `#site-footer` en cada `scroll`/`resize`, de forma imperativa sobre el DOM).
+  - **Todo traducido** vía `t('landing.*')` e integrado el **conmutador ES/EN** (`LanguageToggle`).
+    Correcciones de rótulo: «Portfolio Showcase» → «Proyecto Portfolio», «Starter/Enterprise» →
+    «Inicial/Empresa»; el **enlace de LinkedIn** se deja **como está** (slug sin tilde:
+    `andrea-viera-hernandez-0449652ba`).
+- **Pruebas (PE):** `npm run lint` → **0 problemas**; `npm run build` → **OK**.
+- **Verificado (VF parcial):** módulo `Landing.jsx` transformado sin error por el dev server Vite.
+- **No verificado:** el comportamiento visual del sticky/scroll y de la tarjeta (sin navegador). **Sin
+  commits.**
+
 ## 5. Errores / riesgos abiertos
 
 1. ~~IDOR multi-tenant en la creación de ventas (ver 2.5).~~ **Corregido 2026-10-14 (B1).**
@@ -788,6 +939,17 @@ Pendiente (con autorización del usuario, no ejecutar sin permiso):
 13. ~~**Fase E.3 — activar Flyway en desarrollo.**~~ **Hecha 2026-10-14 (VF):** `flowmetrics` baselinada
     en v2 sin ejecutar V1/V2, datos intactos y app respondiendo. **E.3 completada para desarrollo.** Ver
     4.15. Pendiente fuera de alcance: activación en producción/otras bases (requiere autorización).
+14. ~~**Rediseño de UI (P0+P1+P2).**~~ **Hecho 2026-10-14 (PE + VF parcial):** sistema de diseño,
+    corrección de bugs (loading/error, toasts/confirm, enums, moneda), navegación (Categorías, index
+    `/demo`, 404), responsive (drawer, grids, tablas), marca (index.html, favicon) y limpieza. Ver 4.16.
+    Pendiente: revisión del usuario, enlace LinkedIn real, unificación estética Landing/app y commit.
+15. ~~**Semilla enriquecida V3 de la demo.**~~ **Hecha 2026-10-14 (PE + VF):** `V3__seed_demo_more.sql`
+    (+8 clientes, +8 productos, ~60 ventas/12 meses) verificada en PG desechable y aplicada en
+    `flowmetrics` (dev). Ver 4.18. Pendiente: iniciar una **demo nueva** para ver los datos en pantalla.
+16. ~~**Internacionalización ES/EN + ajustes del Landing.**~~ **Hecha 2026-10-14 (PE + VF parcial):**
+    infra `src/i18n/`, `format.js` locale-aware, layout/UI y 8 páginas traducidas; Landing con logo no
+    clicable, header sticky al bajar/oculto al subir, tarjeta dev sobre el footer y conmutador ES/EN.
+    Ver 4.19 y 4.20. **Pendiente:** verificación visual por el usuario y **commit** (sin autorizar).
 
 > No se avanzará a implementar correcciones ni a tocar la BD sin autorización explícita. La BD de
 > desarrollo `flowmetrics` quedó sin cambios; se creó la BD de pruebas `flowmetrics_test` (esquema,

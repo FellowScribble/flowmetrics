@@ -1,5 +1,8 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { LanguageProvider } from './i18n/LanguageProvider';
 import { DemoSessionProvider } from './context/DemoSessionProvider';
+import { ToastProvider } from './components/ui/toast/ToastProvider';
+import { ConfirmProvider } from './components/ui/confirm/ConfirmProvider';
 import AppLayout from './components/layout/AppLayout';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
@@ -9,31 +12,42 @@ import Sales from './pages/Sales';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Categories from './pages/Categories';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Landing />} />
+    <LanguageProvider>
+      <BrowserRouter>
+        <ToastProvider>
+          <ConfirmProvider>
+            <Routes>
+              <Route path="/" element={<Landing />} />
 
-        <Route
-          path="/demo"
-          element={
-            <DemoSessionProvider>
-              <AppLayout />
-            </DemoSessionProvider>
-          }
-        >
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="products" element={<Products />} />
-          <Route path="categories" element={<Categories />} />
-          <Route path="sales" element={<Sales />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+              <Route
+                path="/demo"
+                element={
+                  <DemoSessionProvider>
+                    <AppLayout />
+                  </DemoSessionProvider>
+                }
+              >
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="customers" element={<Customers />} />
+                <Route path="products" element={<Products />} />
+                <Route path="categories" element={<Categories />} />
+                <Route path="sales" element={<Sales />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ConfirmProvider>
+        </ToastProvider>
+      </BrowserRouter>
+    </LanguageProvider>
   );
 }
 

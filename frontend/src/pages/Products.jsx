@@ -1,45 +1,56 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { Plus, Pencil, Trash2, Package } from 'lucide-react';
 import { getProducts, createProduct, updateProduct, deleteProduct } from '../api/products';
 import { getCategories } from '../api/categories';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Skeleton from '../components/ui/Skeleton';
+import EmptyState from '../components/ui/EmptyState';
+import ErrorState from '../components/ui/ErrorState';
+import PageHeader from '../components/ui/PageHeader';
+import { useToast } from '../components/ui/toast/useToast';
+import { useConfirm } from '../components/ui/confirm/useConfirm';
+import { useAsyncData } from '../lib/useAsyncData';
+import { useFormat } from '../lib/useFormat';
+import { useLanguage } from '../i18n/useLanguage';
+
+const emptyForm = {
+  categoryId: '',
+  name: '',
+  salePrice: '',
+  costPrice: '',
+  stock: '',
+  minimumStock: '',
+  isActive: true,
+};
 
 function Products() {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(emptyForm);
 
-  const [form, setForm] = useState({
-    categoryId: '',
-    name: '',
-    salePrice: '',
-    costPrice: '',
-    stock: '',
-    minimumStock: '',
-    isActive: true,
-  });
+  const toast = useToast();
+  const confirm = useConfirm();
+  const { t } = useLanguage();
+  const { currency } = useFormat();
 
-  useEffect(() => {
-    loadData();
+  const loadProducts = useCallback(async () => {
+    const [products, categories] = await Promise.all([getProducts(), getCategories()]);
+    return { products, categories };
   }, []);
+  const { data, loading, error, refresh, retry } = useAsyncData(loadProducts);
 
-  async function loadData() {
-    setLoading(true);
-    const [productsData, categoriesData] = await Promise.all([
-      getProducts(),
-      getCategories(),
-    ]);
-    setProducts(productsData);
-    setCategories(categoriesData);
-    setLoading(false);
+  function handleChange(event) {
+    const { name, value, type, checked } = event.target;
+    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   }
 
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setSaving(true);
 
     const payload = {
       categoryId: Number(form.categoryId),
@@ -51,26 +62,25 @@ function Products() {
       isActive: form.isActive,
     };
 
-    if (editingId) {
-      await updateProduct(editingId, payload);
-    } else {
-      await createProduct(payload);
+    try {
+      if (editingId) {
+        await updateProduct(editingId, payload);
+        toast.success(t('products.toastUpdated'));
+      } else {
+        await createProduct(payload);
+        toast.success(t('products.toastCreated'));
+      }
+      resetForm();
+      refresh();
+    } catch {
+      toast.error(t('products.toastSaveError'));
+    } finally {
+      setSaving(false);
     }
-
-    resetForm();
-    loadData();
   }
 
   function resetForm() {
-    setForm({
-      categoryId: '',
-      name: '',
-      salePrice: '',
-      costPrice: '',
-      stock: '',
-      minimumStock: '',
-      isActive: true,
-    });
+    setForm(emptyForm);
     setEditingId(null);
   }
 
@@ -87,77 +97,191 @@ function Products() {
     setEditingId(product.id);
   }
 
-  async function handleDelete(id) {
-    if (!confirm('¿Eliminar este producto?')) return;
+  async function handleDelete(product) {
+    const confirmed = await confirm({
+      title: t('products.confirmTitle'),
+      message: t('products.confirmMessage', { name: product.name }),
+      confirmLabel: t('products.confirmLabel'),
+      tone: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
-      await deleteProduct(id);
-      loadData();
-    } catch (error) {
-      if (error.response?.status === 409) {
-        alert('No se puede eliminar: este producto está siendo usado en una o más ventas.');
+      await deleteProduct(product.id);
+      toast.success(t('products.toastDeleted'));
+      refresh();
+    } catch (deleteError) {
+      if (deleteError.response?.status === 409) {
+        toast.error(t('products.toastDeleteConflict'));
       } else {
-        alert('Ha ocurrido un error al eliminar el producto.');
+        toast.error(t('products.toastDeleteError'));
       }
     }
   }
 
-  if (loading) return <p>Cargando productos...</p>;
+  if (loading) {
+    return (
+      <div>
+        <Skeleton className="mb-6 h-8 w-40" />
+        <Skeleton className="mb-6 h-56" />
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
+
+  if (error) return <ErrorState onRetry={retry} />;
+
+  const { products, categories } = data;
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Productos</h1>
+      <PageHeader title={t('products.title')} description={t('products.description')} />
 
-      <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-2 gap-2 max-w-md">
-        <select name="categoryId" value={form.categoryId} onChange={handleChange} required>
-          <option value="">-- Categoría --</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+      <Card className="mb-6 p-5">
+        <h2 className="mb-4 text-sm font-semibold text-zinc-100">
+          {editingId ? t('products.formEdit') : t('products.formNew')}
+        </h2>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Select name="categoryId" value={form.categoryId} onChange={handleChange} required>
+            <option value="">{t('products.selectCategory')}</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </Select>
+          <Input
+            name="name"
+            placeholder={t('products.placeholderName')}
+            value={form.name}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            name="salePrice"
+            type="number"
+            step="0.01"
+            placeholder={t('products.placeholderSalePrice')}
+            value={form.salePrice}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            name="costPrice"
+            type="number"
+            step="0.01"
+            placeholder={t('products.placeholderCostPrice')}
+            value={form.costPrice}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            name="stock"
+            type="number"
+            placeholder={t('products.placeholderStock')}
+            value={form.stock}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            name="minimumStock"
+            type="number"
+            placeholder={t('products.placeholderMinimumStock')}
+            value={form.minimumStock}
+            onChange={handleChange}
+            required
+          />
+          <label className="flex items-center gap-2 text-sm text-zinc-400">
+            <input
+              type="checkbox"
+              name="isActive"
+              checked={form.isActive}
+              onChange={handleChange}
+              className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-brand-500 focus:ring-brand-500"
+            />
+            {t('products.activeLabel')}
+          </label>
 
-        <input name="name" placeholder="Nombre" value={form.name} onChange={handleChange} required />
-        <input name="salePrice" type="number" step="0.01" placeholder="Precio venta" value={form.salePrice} onChange={handleChange} required />
-        <input name="costPrice" type="number" step="0.01" placeholder="Precio coste" value={form.costPrice} onChange={handleChange} required />
-        <input name="stock" type="number" placeholder="Stock" value={form.stock} onChange={handleChange} required />
-        <input name="minimumStock" type="number" placeholder="Stock mínimo" value={form.minimumStock} onChange={handleChange} required />
+          <div className="flex gap-2 sm:col-span-2">
+            <Button type="submit" loading={saving}>
+              <Plus className="h-4 w-4" />
+              {editingId ? t('common.saveChanges') : t('products.create')}
+            </Button>
+            {editingId && (
+              <Button type="button" variant="secondary" onClick={resetForm}>
+                {t('common.cancel')}
+              </Button>
+            )}
+          </div>
+        </form>
+      </Card>
 
-        <button type="submit" className="col-span-2 bg-black text-white py-2 rounded">
-          {editingId ? 'Guardar cambios' : 'Crear producto'}
-        </button>
-
-        {editingId && (
-          <button type="button" onClick={resetForm} className="col-span-2 border py-2 rounded">
-            Cancelar edición
-          </button>
-        )}
-      </form>
-
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="border-b">
-            <th className="py-2">Nombre</th>
-            <th>Categoría</th>
-            <th>Precio</th>
-            <th>Stock</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((p) => (
-            <tr key={p.id} className="border-b">
-              <td className="py-2">{p.name}</td>
-              <td>{categories.find((c) => c.id === p.categoryId)?.name ?? '—'}</td>
-              <td>{p.salePrice} €</td>
-              <td>{p.stock}</td>
-              <td className="flex gap-2 py-2">
-                <button onClick={() => handleEdit(p)} className="text-blue-600">Editar</button>
-                <button onClick={() => handleDelete(p.id)} className="text-red-600">Eliminar</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {products.length === 0 ? (
+        <EmptyState
+          icon={Package}
+          title={t('products.emptyTitle')}
+          description={t('products.emptyDescription')}
+        />
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-zinc-800 bg-zinc-950/60 text-xs uppercase tracking-wide text-zinc-400">
+                  <th className="px-4 py-3">{t('products.colName')}</th>
+                  <th className="px-4 py-3">{t('products.colCategory')}</th>
+                  <th className="px-4 py-3">{t('products.colPrice')}</th>
+                  <th className="px-4 py-3">{t('products.colStock')}</th>
+                  <th className="px-4 py-3 text-right">{t('products.colActions')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {products.map((product) => (
+                  <tr key={product.id} className="text-zinc-300 hover:bg-zinc-800/50">
+                    <td className="px-4 py-3 font-medium text-zinc-100">
+                      {product.name}
+                    </td>
+                    <td className="px-4 py-3">
+                      {categories.find((category) => category.id === product.categoryId)
+                        ?.name ?? '—'}
+                    </td>
+                    <td className="px-4 py-3">{currency(product.salePrice)}</td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        tone={
+                          product.stock <= product.minimumStock ? 'warning' : 'neutral'
+                        }
+                      >
+                        {t('products.units', { count: product.stock })}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(product)}
+                          aria-label={t('aria.editProduct')}
+                          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-brand-400"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(product)}
+                          aria-label={t('aria.deleteProduct')}
+                          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-950/50 hover:text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

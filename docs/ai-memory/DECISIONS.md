@@ -502,3 +502,45 @@ con 1 fila (BASELINE, version=2) y **0** migraciones SQL, datos intactos
 respondiendo (401/404 esperados). `flowmetrics_test` intacta. El arranque habitual sigue con
 `spring.flyway.enabled=false`. Detalle en `PROJECT_STATUS.md` 4.15.
 **Vigente y activada en desarrollo (producción/otras bases: pendiente de decisión).**
+
+### D-37 — V3: semilla enriquecida de la plantilla demo (Vigente)
+
+**Decisión:** añadir `V3__seed_demo_more.sql` que enriquece la **plantilla** (`is_template=true`) con
++8 clientes, +8 productos (3 con stock bajo) y ~60 ventas repartidas en 12 meses, sin ids explícitos y
+referenciando por nombre. Se apoya en que una **sesión demo nueva** clona la plantilla
+(`DemoSessionServiceImpl.findByIsTemplateTrue().get(0)`).
+
+**Motivo:** los informes y gráficas con pocos datos no lucían realistas.
+
+**No modifica V1/V2.** Al estar `flowmetrics` baselinada en v2 (D-36), solo se ejecuta V3 en el arranque
+con perfil `flyway`. **Verificado (PE + VF):** PG desechable y dev (`flowmetrics`) con 13 clientes,
+17 productos, 64 ventas, 13 meses y `lowStockProducts=3`. Las sesiones demo existentes conservan datos
+antiguos (hay que iniciar una nueva).
+
+### D-38 — i18n propia (ES/EN) sin librería externa (Vigente)
+
+**Decisión:** implementar la internacionalización con un **contexto propio** en `src/i18n/`
+(`translations.js` + `LanguageProvider` + `useLanguage` + `LanguageToggle`), sin añadir
+`react-i18next` ni dependencias nuevas. Idioma por defecto **es**; persistencia en
+`localStorage['flowmetrics.language']`; formato de moneda/fecha vía `Intl` ligado al idioma
+(`useFormat`). Las etiquetas de enum pasan a las traducciones (`tEnum`).
+
+**Motivo:** la app no usaba ninguna librería i18n y el alcance (2 idiomas) no justifica una dependencia;
+se mantiene el estilo del proyecto (contextos propios como `toast`/`confirm`).
+
+**Alcance aprobado por el usuario:** **toda** la app (Landing + demo), no solo el Landing.
+
+### D-39 — Landing: header que se muestra al bajar y se oculta al subir (Vigente)
+
+**Decisión (elección del usuario):** el header del Landing queda **sticky** y se muestra al hacer scroll
+**hacia abajo**, ocultándose al hacer scroll **hacia arriba** (`y: '-100%'`), manteniendo el aviso
+«Proyecto Portfolio» **siempre visible** (`bg-black` opaco + `z-10`). El **logo deja de ser clicable**.
+La raíz pasa de `overflow-x-hidden` a `overflow-x-clip` para no romper `position: sticky`.
+
+**Motivo:** petición explícita del usuario ("debe seguir la vista; sticky al bajar, solo al bajar").
+
+### D-40 — Landing: la tarjeta de desarrolladora no debe tapar el footer (Vigente)
+
+**Decisión:** la tarjeta flotante de la desarrolladora calcula su `bottom` en cada `scroll`/`resize`
+según el solape con el footer (`#site-footer`), subiendo lo justo para no cubrirlo, en vez de fijarse a
+`bottom-6`. Se extrajo a un componente `DevCard` para aislar su estado.
