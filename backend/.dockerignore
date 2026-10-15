@@ -1,0 +1,31 @@
+# Artefactos de build (se regeneran dentro de la imagen)
+target/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE (Eclipse)
+.project
+.classpath
+.settings/
+.factorypath
+
+# IDE (IntelliJ / VS Code)
+.idea/
+.vscode/
+*.iml
+
+# Secretos y entorno local (no deben entrar en la imagen)
+.env
+.env.*
+!.env.example
+*.local
+
+# Sistema / documentación
+.DS_Store
+Thumbs.db
+HELP.md
+README.md
+*.log
