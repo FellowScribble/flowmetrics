@@ -544,3 +544,53 @@ La raíz pasa de `overflow-x-hidden` a `overflow-x-clip` para no romper `positio
 **Decisión:** la tarjeta flotante de la desarrolladora calcula su `bottom` en cada `scroll`/`resize`
 según el solape con el footer (`#site-footer`), subiendo lo justo para no cubrirlo, en vez de fijarse a
 `bottom-6`. Se extrajo a un componente `DevCard` para aislar su estado.
+
+### D-41 — Proxy de Vercel `/api` → Render para la comunicación frontend↔backend (Vigente)
+
+**Decisión:** el frontend llama a su **propio origen** (`VITE_API_URL=/api`) y Vercel reescribe
+`/api/:path*` hacia el servicio de Render (`frontend/vercel.json`). No se usa acceso directo
+cross-origin.
+
+**Motivo:** con dominios distintos, una cookie `SameSite=Lax` **no se envía** en peticiones cruzadas, y
+`SameSite=None` depende de cookies de terceros que Safari/ITP bloquea. Con el proxy, frontend y API son
+**mismo origen**: la cookie `HttpOnly; Secure; SameSite=Lax` funciona sin debilitar la seguridad, y CORS
+ni se ejerce. Se descartó la opción cross-origin directo.
+
+### D-42 — Healthcheck con Spring Boot Actuator, solo `/actuator/health` (Vigente)
+
+**Decisión:** añadir `spring-boot-starter-actuator` y exponer **únicamente** el endpoint de salud
+(`management.endpoints.web.exposure.include=health`, `show-details=never`, `show-components=never`).
+Render usará `/actuator/health`.
+
+**Motivo:** Render necesita una comprobación de salud fiable; reutilizar Actuator es el mecanismo
+estándar. El proyecto **no tenía** Spring Security, así que el endpoint queda público por diseño (lo
+que Render necesita) sin exponer métricas/config/entorno ni datos sensibles. Se verificó la
+compatibilidad: Actuator **4.1.0** (gestionado por el padre Spring Boot 4.1.0).
+
+### D-43 — Perfil `prod` con Flyway SIN baseline para la base vacía de Neon (Vigente)
+
+**Decisión:** nuevo `application-prod.properties` con `spring.flyway.enabled=true`,
+`clean-disabled=true`, **sin** `baseline-on-migrate` ni `baseline-version`, `spring.jpa.show-sql=false`
+y `server.port=${PORT:8080}`. Se activa con `SPRING_PROFILES_ACTIVE=prod`.
+
+**Motivo:** la BD de producción (Neon) está **vacía**: Flyway debe aplicar V1/V2/V3 desde cero. El
+`baseline-version=2` del perfil local `flyway` (D-36) está pensado para la BD local existente y **no
+debe copiarse** a producción. No se modificaron migraciones ni la configuración local/test.
+
+### D-44 — Cookie de demo: `Secure` configurable, `SameSite=Lax` sin cambios (Vigente)
+
+**Decisión:** `DemoSessionController` marca la cookie como `secure` según
+`app.demo.cookie.secure` (default `false`; perfil `prod` la pone `true`). Se mantienen `HttpOnly`,
+`Path=/` y `SameSite=Lax`.
+
+**Motivo:** en local (HTTP) `Secure` rompería el envío; en producción (HTTPS, same-origin por el proxy)
+es correcta. No se altera la extracción, validación ni el aislamiento de la sesión.
+
+### D-45 — Backend en Docker para Render; configuración solo por variables de entorno (Vigente)
+
+**Decisión:** `backend/Dockerfile` multi-etapa (Maven + JDK 21 → JRE 21, `-DskipTests`,
+`-XX:MaxRAMPercentage=75.0`) y `backend/.dockerignore`. Render: *Root Directory* `backend`,
+*Dockerfile Path* `Dockerfile`, *Health Check Path* `/actuator/health`. Ningún secreto en la imagen.
+
+**Motivo:** Render ejecuta el backend con Java 21 vía Docker. La conexión a Neon y demás secretos se
+inyectan como variables de entorno en el panel de Render (ver `docs/despliegue.md`).

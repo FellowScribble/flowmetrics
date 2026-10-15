@@ -15,14 +15,22 @@
 
 > Última sesión (OpenCode). Retomar por aquí.
 
-- **Última tarea (2026-10-14): internacionalización ES/EN de toda la app + ajustes del Landing, PE + VF
+- **Última tarea (2026-10-14): preparación para despliegue (Vercel + Render + Neon), CI + PE.** Ver
+  **4.21**. **No** se ha desplegado ni conectado Neon. Decisiones: **proxy Vercel `/api`→Render**,
+  **Actuator** (`/actuator/health`), **CORS por env**, **perfil `prod` con Flyway sin baseline** y
+  **cookie `Secure` configurable**. Nuevos: `backend/Dockerfile`, `backend/.dockerignore`,
+  `backend/.env.example`, `backend/src/main/resources/application-prod.properties`,
+  `frontend/vercel.json`, `frontend/.env.example`, `docs/despliegue.md`; modificados `pom.xml`,
+  `application.properties`, `CorsConfig.java`, `DemoSessionController.java`, `README.md`. PE backend
+  (`compile`/`test-compile` OK; Actuator 4.1.0 resuelto) y frontend (`lint` 0, `build` OK). **Sin
+  commits.** Pendiente: build Docker, migración en Neon, proxy/cookie en navegador real.
+- **Tarea previa (2026-10-14): internacionalización ES/EN de toda la app + ajustes del Landing, PE + VF
   parcial.** Ver **4.19** y **4.20**. Infra `src/i18n/` (contexto, provider, `useLanguage`,
   `LanguageToggle`, `translations.js`), `format.js` locale-aware + `useFormat`; traducidas layout/UI y
   las 8 páginas; `App` envuelto con `LanguageProvider`. Landing: **logo no clicable**, **header sticky
   al bajar / oculto al subir** (aviso «Proyecto Portfolio» siempre visible), **tarjeta de
   desarrolladora que sube para no tapar el footer** y **conmutador ES/EN**. `lint` 0 y `build` OK;
-  módulos transformados sin error por Vite. **Sin commits.** Pendiente: **revisión visual del usuario**
-  (sin navegador en la sesión).
+  módulos transformados sin error por Vite. **Sin commits.**
 - **Tarea previa (2026-10-14): semilla enriquecida V3 de la demo, PE + VF.** Ver **4.18**.
   `V3__seed_demo_more.sql` (+8 clientes, +8 productos, ~60 ventas/12 meses) verificada en PG desechable
   y aplicada en `flowmetrics` (dev). **Sin commits.**
@@ -798,6 +806,40 @@ perfil `test`, `Accept: application/json`): `GET /api/demo/cleanup` → 405 y `G
 - **Verificado (VF parcial):** módulo `Landing.jsx` transformado sin error por el dev server Vite.
 - **No verificado:** el comportamiento visual del sticky/scroll y de la tarjeta (sin navegador). **Sin
   commits.**
+
+### 4.21 Preparación para despliegue (Vercel + Render + Neon) (2026-10-14, CI + PE parcial)
+
+> **Tarea:** dejar el repositorio preparado para un despliegue **manual futuro**. **No** se ha
+> desplegado, **no** se ha conectado Neon, **no** se han ejecutado migraciones y **no** se han hecho
+> commits. Decisiones del usuario: **proxy Vercel `/api` → Render**, **Actuator** para healthcheck, y
+> aplicar **CORS por env + perfil `prod` para Flyway + cookie `Secure` configurable**.
+
+- **Auditoría (CI):** todos los endpoints de negocio pasan por `SessionGuard` (companyId desde la
+  sesión, nunca del cliente); `SaleServiceImpl` valida pertenencia de cliente/producto; plantilla
+  protegida y sin endpoints de escritura. **No se encontró fuga entre empresas ni bypass de sesión.**
+  Bloqueantes detectados (de configuración, no de seguridad): CORS fijo a localhost, cookie no
+  cross-site, Flyway desactivado, SPA sin rewrites, sin healthcheck.
+- **Cambios de backend:**
+  - `pom.xml`: +`spring-boot-starter-actuator` (gestionado por el padre 4.1.0).
+  - `application.properties`: expone **solo** `/actuator/health` (`management.endpoints.web.exposure.include=health`,
+    `show-details=never`, `show-components=never`); `app.cors.allowed-origins` y `app.demo.cookie.secure`
+    por variable de entorno (defaults locales intactos).
+  - **Nuevo** `application-prod.properties`: `spring.flyway.enabled=true` **sin baseline**
+    (`clean-disabled=true`), `spring.jpa.show-sql=false`, `server.port=${PORT:8080}`,
+    `app.demo.cookie.secure=true`.
+  - `CorsConfig.java`: orígenes desde `app.cors.allowed-origins` (default `http://localhost:5173`).
+  - `DemoSessionController.java`: `@Value("${app.demo.cookie.secure:false}")` y `.secure(cookieSecure)`;
+    se mantienen `HttpOnly`, `Path=/`, `SameSite=Lax`, `Max-Age=2h`. **No cambia el aislamiento.**
+- **Nuevos archivos:** `backend/Dockerfile` (multi-etapa Maven+JDK21 → JRE21, sin tests),
+  `backend/.dockerignore`, `backend/.env.example`, `frontend/vercel.json` (rewrite `/api/:path*` →
+  Render + fallback SPA), `frontend/.env.example`, `docs/despliegue.md`. README actualizado.
+- **Pruebas ejecutadas (PE):** backend `./mvnw -DskipTests compile` → **OK**; `./mvnw -DskipTests
+  test-compile` → **OK**; Actuator **4.1.0** resuelto en `~/.m2`. Frontend `npm run lint` → **0
+  problemas**; `npm run build` → **OK**.
+- **NO verificado (pendiente):** build de la imagen **Docker** (no está instalado), arranque en
+  **Render**, migración sobre **Neon**, comportamiento del **proxy** y de la **cookie** en navegador
+  real, y memoria (OOM) en Render Free. Ver `docs/despliegue.md` §Comprobaciones.
+- **Sin commits.** Decisión de **rama a publicar** (`develop` vs `main`) pendiente.
 
 ## 5. Errores / riesgos abiertos
 

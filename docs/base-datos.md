@@ -159,3 +159,12 @@ falta, la aplicación no arranca. El perfil `test` hereda estas credenciales y a
 **Producción:** configura **explícitamente** las tres variables (`DB_URL`, `DB_USERNAME`,
 `DB_PASSWORD`). Los valores por defecto (`postgres` y la BD local `flowmetrics`) son únicamente para
 desarrollo local y no deben usarse en producción.
+
+## Flyway en producción (perfil `prod`)
+
+La base de datos de producción (Neon) está **vacía** y se inicializa con **Flyway sin baseline**,
+mediante un perfil separado `application-prod.properties` (`SPRING_PROFILES_ACTIVE=prod`):
+`spring.flyway.enabled=true` (sin `baseline-on-migrate` ni `baseline-version`). Así se aplican
+`V1__create_schema.sql`, `V2__seed_demo.sql` y `V3__seed_demo_more.sql` desde cero. El
+`baseline-version=2` del perfil local `flyway` es **solo para la BD local existente** y **no se copia**
+a producción. Ver `docs/despliegue.md` y decisiones **D-43**.

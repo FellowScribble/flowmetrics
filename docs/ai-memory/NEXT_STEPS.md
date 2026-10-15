@@ -155,13 +155,21 @@ Depende de que A–C estén verificados.
    usa `${DB_URL:...}`, `${DB_USERNAME:postgres}` y `${DB_PASSWORD}` (obligatoria); hay que exportarlas
    para la app y los tests. Detalle en `PROJECT_STATUS.md` 4.12.
 
-## Fase F — Despliegue (más adelante)
+## Fase F — Despliegue (preparado; ejecución manual pendiente)
 
-Depende de E y de que el aislamiento demo esté verificado.
+> **Estado 2026-10-14: PREPARACIÓN HECHA (CI + PE). Sin desplegar.** Ver `PROJECT_STATUS.md` 4.21 y
+> `docs/despliegue.md`. Decisiones D-41…D-45. Arquitectura: **Vercel (frontend) + Render (backend
+> Docker) + Neon (PostgreSQL)**, con **proxy `/api`** de Vercel hacia Render.
 
-- Objetivos solo mencionados: Frontend Vercel, Backend Render, PostgreSQL Neon (D-18).
-- Antes: CORS, cookies `Secure`/`SameSite`, HTTPS, secretos fuera del control de versiones, y
-  verificar aislamiento/limpieza en el entorno desplegado.
+- Hecho: `backend/Dockerfile`, `.dockerignore`, `application-prod.properties` (Flyway **sin baseline**,
+  `$PORT`, cookie `Secure`, `show-sql=false`), Actuator (**solo** `/actuator/health`), CORS por
+  variable de entorno, cookie `Secure` configurable, `frontend/vercel.json` (rewrites `/api` + SPA),
+  `.env.example` (back/front) y `docs/despliegue.md`.
+- PE: backend `compile`/`test-compile` OK (Actuator 4.1.0 resuelto); frontend `lint` 0 y `build` OK.
+- **Pendiente (todo manual, requiere autorización):** crear Neon, crear el servicio Docker en Render,
+  desplegar el frontend en Vercel, fijar la URL real de Render en `vercel.json`, **ejecutar las
+  migraciones sobre Neon** y verificar sesiones/aislamiento/cookie/proxy en runtime. Confirmar que el
+  backend arranca en Render Free (512 MB, sin OOM). Decidir **rama a publicar** (`develop` vs `main`).
 - No afirmar despliegue hasta probarlo.
 
 ---

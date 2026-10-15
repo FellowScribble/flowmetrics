@@ -3,6 +3,7 @@ package com.flowmetrics.backend.controller;
 import org.springframework.http.ResponseCookie;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import com.flowmetrics.backend.entity.DemoSession;
@@ -20,10 +21,14 @@ public class DemoSessionController {
 
     private final DemoSessionService demoSessionService;
     private final DemoCleanupService demoCleanupService;
+    private final boolean cookieSecure;
 
-    public DemoSessionController(DemoSessionService demoSessionService, DemoCleanupService demoCleanupService) {
+    public DemoSessionController(DemoSessionService demoSessionService,
+                                 DemoCleanupService demoCleanupService,
+                                 @Value("${app.demo.cookie.secure:false}") boolean cookieSecure) {
         this.demoSessionService = demoSessionService;
         this.demoCleanupService = demoCleanupService;
+        this.cookieSecure = cookieSecure;
     }
 
     @PostMapping("/cleanup")
@@ -39,6 +44,7 @@ public class DemoSessionController {
 
         ResponseCookie cookie = ResponseCookie.from(COOKIE_NAME, session.getSessionToken())
                 .httpOnly(true)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(java.time.Duration.ofHours(2))
                 .sameSite("Lax")

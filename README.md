@@ -64,6 +64,7 @@ npm run dev                 # http://localhost:5173
 - [Arquitectura](docs/arquitectura.md)
 - [API REST](docs/api.md)
 - [Base de datos](docs/base-datos.md)
+- [Despliegue (Vercel + Render + Neon)](docs/despliegue.md)
 - [Roadmap](docs/roadmap.md)
 
 ## Notas
@@ -76,3 +77,8 @@ npm run dev                 # http://localhost:5173
   `docs/base-datos.md`).
 - Las credenciales de la base de datos se toman de variables de entorno (`DB_USERNAME`, `DB_PASSWORD`,
   `DB_URL`); **no** hay secretos en el repositorio. Los tests también requieren esas variables.
+- **Despliegue:** preparado para **Vercel (frontend) + Render (backend, Docker) + Neon (PostgreSQL)**.
+  El backend de producción usa el perfil `prod` (`SPRING_PROFILES_ACTIVE=prod`), que activa Flyway
+  **sin baseline** para inicializar una base vacía, escucha en `$PORT` y marca la cookie de demo
+  como `Secure`. El frontend llama a `/api` y Vercel lo redirige a Render (mismo origen). Ver
+  [docs/despliegue.md](docs/despliegue.md).

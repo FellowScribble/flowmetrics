@@ -21,6 +21,7 @@ target
 .DS_Store
 Thumbs.db
 
-# Variables
+# Variables de entorno (backend/ y frontend/; cualquier nivel)
 .env
-.env.local
+.env.*
+!.env.example
