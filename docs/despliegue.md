@@ -149,7 +149,10 @@ y `SPRING_PROFILES_ACTIVE=prod`. Guardar (provoca redespliegue).
   comportamiento del proxy y de la cookie en navegador real.
 - **Memoria de Render Free (512 MB):** no medida; el `Dockerfile` fija
   `-XX:MaxRAMPercentage=75.0`. Confirmar que arranca sin OOM.
-- **`/api/demo/cleanup` es público** (dispara la limpieza de sesiones caducadas). No filtra
-  datos, pero podría endurecerse. Riesgo bajo.
+- **`POST /api/demo/cleanup` está deshabilitado en producción** (perfil `prod`:
+  `app.demo.cleanup.endpoint.enabled=false` → responde **404**). Solo era un gancho manual
+  sin autenticación; la limpieza de sesiones caducadas en producción la hace el
+  `@Scheduled` horario (`DemoCleanupServiceImpl`), que no depende de esa propiedad.
+  En local y tests sigue habilitado por defecto (`true`).
 - **Neon Free** puede suspender la cómputo; el primer acceso también puede tardar.
 - **Rama a publicar:** decidir si se despliega `develop` o se promueve a `main`.

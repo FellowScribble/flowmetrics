@@ -157,19 +157,24 @@ Depende de que A–C estén verificados.
 
 ## Fase F — Despliegue (preparado; ejecución manual pendiente)
 
-> **Estado 2026-10-14: PREPARACIÓN HECHA (CI + PE). Sin desplegar.** Ver `PROJECT_STATUS.md` 4.21 y
-> `docs/despliegue.md`. Decisiones D-41…D-45. Arquitectura: **Vercel (frontend) + Render (backend
+> **Estado 2026-10-15: PREPARACIÓN HECHA (CI + PE). Sin desplegar.** Ver `PROJECT_STATUS.md` 4.21 y
+> 4.22, `docs/despliegue.md`. Decisiones D-41…D-47. Arquitectura: **Vercel (frontend) + Render (backend
 > Docker) + Neon (PostgreSQL)**, con **proxy `/api`** de Vercel hacia Render.
 
 - Hecho: `backend/Dockerfile`, `.dockerignore`, `application-prod.properties` (Flyway **sin baseline**,
-  `$PORT`, cookie `Secure`, `show-sql=false`), Actuator (**solo** `/actuator/health`), CORS por
+  `$PORT`, cookie `Secure`, `show-sql=false`, **`app.demo.cleanup.endpoint.enabled=false`** →
+  `POST /api/demo/cleanup` responde 404 en prod, D-46), Actuator (**solo** `/actuator/health`), CORS por
   variable de entorno, cookie `Secure` configurable, `frontend/vercel.json` (rewrites `/api` + SPA),
-  `.env.example` (back/front) y `docs/despliegue.md`.
-- PE: backend `compile`/`test-compile` OK (Actuator 4.1.0 resuelto); frontend `lint` 0 y `build` OK.
+  `.env.example` (back/front), `.gitignore` de `.env` (D-47) y `docs/despliegue.md`.
+- PE (2026-10-15): `./mvnw clean verify` → **BUILD SUCCESS, 12 unitarios + 23 IT, 0 fallos**;
+  auditoría de secretos sin hallazgos en archivos versionados (**riesgo 17 abierto:** credencial real
+  en commits históricos). Frontend `lint` 0 y `build` OK (2026-10-14).
 - **Pendiente (todo manual, requiere autorización):** crear Neon, crear el servicio Docker en Render,
-  desplegar el frontend en Vercel, fijar la URL real de Render en `vercel.json`, **ejecutar las
-  migraciones sobre Neon** y verificar sesiones/aislamiento/cookie/proxy en runtime. Confirmar que el
-  backend arranca en Render Free (512 MB, sin OOM). Decidir **rama a publicar** (`develop` vs `main`).
+  desplegar el frontend en Vercel, fijar la URL real de Render en `vercel.json` (**hoy es un
+  placeholder**), **ejecutar las migraciones sobre Neon** y verificar sesiones/aislamiento/cookie/proxy
+  en runtime. Confirmar que el backend arranca en Render Free (512 MB, sin OOM). Decidir **rama a
+  publicar** (`develop` vs `main`). Decidir rotación/limpieza del historial por la credencial histórica
+  (riesgo 17).
 - No afirmar despliegue hasta probarlo.
 
 ---

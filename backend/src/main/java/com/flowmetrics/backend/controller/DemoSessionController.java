@@ -22,17 +22,23 @@ public class DemoSessionController {
     private final DemoSessionService demoSessionService;
     private final DemoCleanupService demoCleanupService;
     private final boolean cookieSecure;
+    private final boolean cleanupEndpointEnabled;
 
     public DemoSessionController(DemoSessionService demoSessionService,
                                  DemoCleanupService demoCleanupService,
-                                 @Value("${app.demo.cookie.secure:false}") boolean cookieSecure) {
+                                 @Value("${app.demo.cookie.secure:false}") boolean cookieSecure,
+                                 @Value("${app.demo.cleanup.endpoint.enabled:true}") boolean cleanupEndpointEnabled) {
         this.demoSessionService = demoSessionService;
         this.demoCleanupService = demoCleanupService;
         this.cookieSecure = cookieSecure;
+        this.cleanupEndpointEnabled = cleanupEndpointEnabled;
     }
 
     @PostMapping("/cleanup")
     public ResponseEntity<String> triggerCleanup() {
+        if (!cleanupEndpointEnabled) {
+            return ResponseEntity.notFound().build();
+        }
         demoCleanupService.cleanupExpiredSessions();
         return ResponseEntity.ok("Limpieza ejecutada");
     }

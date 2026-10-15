@@ -11,7 +11,8 @@ Convenciones:
   (`{ "error": ... }`). El `companyId` autorizado se obtiene **siempre** de la sesión del servidor:
   el `?companyId=` enviado por el cliente **se ignora** y un `companyId` en el cuerpo de escritura
   **no autoriza** otra empresa. Los `{id}` ajenos a la sesión responden **404**.
-- **Rutas públicas:** solo `POST /demo/start`, `GET /demo/me` y `POST /demo/cleanup`.
+- **Rutas públicas:** solo `POST /demo/start`, `GET /demo/me` y `POST /demo/cleanup`
+  (esta última **404** en producción, ver abajo).
 - Los errores de dominio devuelven JSON con al menos `error` (p. ej. 401/404/409/400). Ver «Errores».
 
 ## Demo / sesión
@@ -20,7 +21,7 @@ Convenciones:
 |---|---|---|
 | `POST` | `/demo/start` | Crea una empresa demo (clon de la plantilla) y devuelve la cookie `demoSession`. |
 | `GET` | `/demo/me` | Devuelve la sesión activa. **401** si no hay cookie válida. |
-| `POST` | `/demo/cleanup` | Ejecuta la limpieza de sesiones caducadas. Devuelve texto plano. |
+| `POST` | `/demo/cleanup` | Ejecuta la limpieza de sesiones caducadas. Devuelve texto plano. **Deshabilitado en producción** (perfil `prod`, `app.demo.cleanup.endpoint.enabled=false` → **404**); en producción limpia el `@Scheduled` horario. |
 
 `POST /demo/start` → **200**
 ```json

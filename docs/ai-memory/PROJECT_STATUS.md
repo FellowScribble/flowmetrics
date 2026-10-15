@@ -1,6 +1,6 @@
 # FlowMetrics — Current status
 
-> **Última revisión:** 2026-10-14, a partir de una inspección directa del repositorio
+> **Última revisión:** 2026-10-15, a partir de una inspección directa del repositorio
 > `/home/andreavierahernandez/Documentos/GitHub/flowmetrics` (rama `develop`).
 >
 > **Cómo leer este documento:** distingue tres niveles de evidencia que **no** deben confundirse:
@@ -11,9 +11,36 @@
 > Nada que no aparezca como PE o VF puede afirmarse que “funciona”. El estado histórico previo
 > (basado en logs pegados y conversación) se conserva en `PROJECT_HISTORY.md`.
 
-## Punto de guardado (checkpoint 2026-10-14)
+## Punto de guardado (checkpoint 2026-10-15)
 
 > Última sesión (OpenCode). Retomar por aquí.
+
+- **Sesión (2026-10-15): endurecimiento pre-despliegue, PE.** Detalle en **4.22** y **D-46**.
+  - **`.gitignore` raíz:** `.env` + `.env.*` + `!.env.example` (cubre `backend/` y `frontend/`);
+    verificado con `git check-ignore`. **Incluido en el commit `1e8d952` "Files on-work deployment"
+    (creado por el usuario entre sesiones; incluye además todo el material de despliegue de la sesión
+    previa: Dockerfile, `application-prod.properties`, `vercel.json`, `docs/despliegue.md`, etc.).**
+  - **Auditoría de secretos: sin hallazgos** en los archivos a versionar (solo placeholders; la
+    contraseña real de `DB_PASSWORD` **persiste en commits históricos** `785bf60` y anteriores →
+    riesgo pendiente 17).
+  - **`POST /api/demo/cleanup` cerrado en producción (Opción C, D-46):** propiedad
+    `app.demo.cleanup.endpoint.enabled` (default `true`; perfil `prod` → `false` ⇒ **404**). El
+    `@Scheduled` horario no se toca. Docs: `docs/despliegue.md` y `docs/api.md` actualizados.
+  - **Pruebas (PE):** `./mvnw clean verify` → **BUILD SUCCESS**, **12 unitarios + 23 IT, 0 fallos**
+    (nuevas: `DemoCleanupEndpointDisabledIT` 2 y `DemoCleanupEndpointEnabledIT` 1);
+    `flowmetrics_test` a **0 filas**; BD dev `flowmetrics` **sin cambios por los tests**.
+  - **`frontend/vercel.json` revisado (CI):** el destino `/api` es un **placeholder**
+    (`REPLACE-WITH-YOUR-RENDER-SERVICE`) — hay que sustituirlo antes de desplegar; el orden de los
+    rewrites es correcto (`/api/:path*` antes que el catch-all de la SPA).
+  - **`docs/despliegue.md` verificado:** distingue verificado/pendiente y no afirma despliegue.
+  - **Sin commits nuevos** (los de esta sesión siguen sin commitear). **Observación:** la BD dev
+    `flowmetrics` muestra ahora companies=7, demo_sessions=6, customers=75, sales=328, products=103,
+    `flyway_schema_history`=2 (actividad del usuario + V3), distinto de la línea base de 4.15; los
+    tests de esta sesión solo tocaron `flowmetrics_test`.
+
+## Punto de guardado (checkpoint 2026-10-14) — sesión anterior
+
+> Sesión previa (OpenCode), ya cerrada.
 
 - **Última tarea (2026-10-14): preparación para despliegue (Vercel + Render + Neon), CI + PE.** Ver
   **4.21**. **No** se ha desplegado ni conectado Neon. Decisiones: **proxy Vercel `/api`→Render**,
@@ -841,6 +868,50 @@ perfil `test`, `Accept: application/json`): `GET /api/demo/cleanup` → 405 y `G
   real, y memoria (OOM) en Render Free. Ver `docs/despliegue.md` §Comprobaciones.
 - **Sin commits.** Decisión de **rama a publicar** (`develop` vs `main`) pendiente.
 
+### 4.22 Endurecimiento pre-despliegue: `.gitignore`, auditoría de secretos y cierre de `/api/demo/cleanup` en prod (2026-10-15, PE)
+
+> **Tarea autorizada:** preparación para despliegue **sin** publicar, commitear, desplegar, tocar BD
+> ni conectarse a Neon. Detalle de decisiones: **D-46**.
+
+- **`git status` al empezar:** el usuario había creado el commit **`1e8d952` "Files on-work
+  deployment"** (incluye `.gitignore` con los patrones `.env` de esta sesión, Dockerfile,
+  `application-prod.properties`, `vercel.json`, `docs/despliegue.md`, memoria, etc.). La sesión
+  2026-10-14 quedó así commiteada por el usuario; **esta** sesión no ha hecho ningún commit.
+- **`.gitignore` raíz (CI):** se amplió a `.env` / `.env.*` / `!.env.example` (patrones sin `/`,
+  aplican a `backend/` y `frontend/` en cualquier nivel). **Verificado (PE)** con `git check-ignore`
+  sobre 7 rutas: los `.env`/`.env.local`/`.env.production` de ambos directorios quedan **ignorados**
+  y los dos `.env.example` **visibles**; `git ls-files` no trackea ningún `.env`.
+- **Auditoría de secretos (CI/PE):** búsquedas en todo el repo de credenciales en URLs JDBC/Postgres,
+  `password=`/`secret`/`api_key`/`token=` con valor literal, patrones JWT/hex largo/`sk-`. **Cero
+  hallazgos reales** en los archivos a versionar: solo placeholders (`CAMBIA_ESTO_...`, `ep-xxxx...`),
+  identificadores de código y un hash `integrity` de `package-lock.json`.
+  - **Hallazgo nuevo (riesgo 17):** la contraseña real de `DB_PASSWORD` **persiste en el historial
+    de git** (`785bf60` y anteriores; `HEAD` ya usa `${DB_PASSWORD}`). Para ejecutar los tests se
+    extrajo de ese commit **sin imprimirla**. Rotar la contraseña o limpiar el historial requiere
+    autorización explícita.
+- **`POST /api/demo/cleanup` (CI → PE):** análisis previo: borraba solo sesiones caducadas (`isActive`
+  y `expiresAt < ahora`), su empresa clonada y hijos; **sin autenticación**; el frontend **no** lo usa
+  (0 llamadas); el `@Scheduled` horario cubre la limpieza. Riesgo: endpoint de estado público
+  invocable por cualquiera (abuso/carga en Render Free). **Corrección mínima autorizada (Opción C):**
+  nueva propiedad `app.demo.cleanup.endpoint.enabled` (default **`true`** → local y tests intactos);
+  `application-prod.properties` la pone en **`false`** ⇒ el handler responde **404** (no revela su
+  existencia). **El `@Scheduled` de `DemoCleanupServiceImpl` no depende de la propiedad y no se
+  modificó.** No se tocó lógica de limpieza, aislamiento, migraciones ni BD.
+- **Nuevas pruebas (PE):** `DemoCleanupEndpointDisabledIT` (propiedad `false` → POST **404**, cuerpo
+  vacío, 2 tests) y `DemoCleanupEndpointEnabledIT` (default → POST **200** «Limpieza ejecutada»,
+  1 test; BD de test sin sesiones caducadas ⇒ no-op). `ErrorResponseIT` sigue verde (GET → 405,
+  mapping registrado).
+- **Resultado (PE):** `./mvnw clean verify` → **BUILD SUCCESS**: **12 unitarios + 23 IT, 0 fallos**
+  (frente a 20 IT previas). `flowmetrics_test` a **0 filas** (rollback correcto); BD dev `flowmetrics`
+  **sin cambios por los tests** (guard de `BackendApplicationIT` en verde).
+- **`frontend/vercel.json` (CI):** destino del rewrite `/api/:path*` = **placeholder**
+  `https://REPLACE-WITH-YOUR-RENDER-SERVICE.onrender.com` → bloqueante para desplegar (paso 6.1 de
+  `docs/despliegue.md`). Orden correcto: `/api/:path*` **antes** que `/(.*)→/index.html` ⇒ la SPA no
+  intercepta `/api` (Vercel evalúa los rewrites en orden).
+- **`docs/despliegue.md` (CI):** correcto — abre declarando que **nada se ha ejecutado/desplegado**,
+  separa verificado/pendiente y no afirma publicación. Actualizado para documentar el cierre del
+  endpoint manual; también `docs/api.md` (fila de `/demo/cleanup`).
+
 ## 5. Errores / riesgos abiertos
 
 1. ~~IDOR multi-tenant en la creación de ventas (ver 2.5).~~ **Corregido 2026-10-14 (B1).**
@@ -947,6 +1018,13 @@ perfil `test`, `Accept: application/json`): `GET /api/demo/cleanup` → 405 y `G
     - **Evidencia (PE):** nuevo `TenantIsolationIT` (MockMvc, 8 casos) verde; `./mvnw clean verify` en
       copia aislada → **12 unitarios + 20 IT, 0 fallos**; `flowmetrics_test` a 0 filas tras rollback y
       BD dev sin cambios. Documentado en `docs/api.md`. Ver D-35.
+17. **Credencial histórica en el historial de git (2026-10-15, CI).** El fichero actual
+    `application.properties` usa `${DB_PASSWORD}` (placeholder), pero la **contraseña real de
+    PostgreSQL aparece en texto plano en commits anteriores** (`785bf60` y anteriores). Cualquiera con
+    acceso al repo (o a su copia local) puede leerla. Detectado al extraerla para ejecutar los tests
+    sin imprimirla. **Requiere decisión del usuario:** rotar la contraseña de la BD local y/o limpiar
+    el historial (`git filter-repo` + force-push, afecta a colaboradores/copia del historial). No se
+    tocó nada. Ver 4.22.
 
 ## 6. Siguiente paso concreto
 

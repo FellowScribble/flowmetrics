@@ -594,3 +594,40 @@ es correcta. No se altera la extracción, validación ni el aislamiento de la se
 
 **Motivo:** Render ejecuta el backend con Java 21 vía Docker. La conexión a Neon y demás secretos se
 inyectan como variables de entorno en el panel de Render (ver `docs/despliegue.md`).
+
+### D-46 — Cerrar `POST /api/demo/cleanup` en producción vía propiedad (Opción C) (Vigente)
+
+**Decidido con el usuario (2026-10-15):** el endpoint manual de limpieza pasa a estar controlado por
+la propiedad `app.demo.cleanup.endpoint.enabled` (default **`true`**, es decir, **local y tests no
+cambian**); `application-prod.properties` la define en **`false`** y el handler responde **404** en
+lugar de ejecutar la limpieza. El `@Scheduled` horario de `DemoCleanupServiceImpl` **no** depende de
+esta propiedad y sigue funcionando igual.
+
+**Contexto/justificación (análisis 2026-10-15):** `POST /api/demo/cleanup` no exigía sesión ni
+autenticación; solo el frontend (0 llamadas) no lo usaba y cualquier tercero podía disparar deletes de
+BD a voluntad (abuso/carga en Render Free). El riesgo de pérdida de datos era bajo (solo sesiones
+caducadas), por lo que se eligió la **Opción C** (mínima) frente a B (eliminar el endpoint, que
+habría obligado a migrar la sonda `ErrorResponseIT` `GET → 405`) y A (token de operaciones).
+
+**Alcance:** solo `DemoSessionController` (guard + parámetro `@Value`), `application-prod.properties`
+(+1 propiedad), docs (`docs/despliegue.md`, `docs/api.md`) y dos IT nuevas. **No** se tocó la lógica
+de limpieza, el aislamiento multiempresa, migraciones ni la BD.
+
+**Evidencia (PE):** `./mvnw clean verify` → **BUILD SUCCESS, 12 unitarios + 23 IT, 0 fallos**;
+`DemoCleanupEndpointDisabledIT` (propiedad `false` → POST 404 sin cuerpo), `DemoCleanupEndpointEnabledIT`
+(default → POST 200 «Limpieza ejecutada»); `ErrorResponseIT` sigue verde (GET 405); `flowmetrics_test`
+a 0 filas y BD dev sin cambios por los tests. Detalle: `PROJECT_STATUS.md` 4.22.
+
+### D-47 — `.gitignore` de variables de entorno (Vigente)
+
+**Decisión (2026-10-15):** en el `.gitignore` raíz, sección de variables de entorno:
+`.env` + `.env.*` + `!.env.example` (patrones sin `/`, aplican a `backend/` y `frontend/` en cualquier
+nivel). Los `.env.example` de ambos directorios siguen siendo versionables.
+
+**Evidencia (PE):** `git check-ignore` confirma ignorados `backend/.env`, `.env.local`,
+`.env.production` y sus homólogos de `frontend/`, y visibles los dos `.env.example`; `git ls-files` no
+trackea ningún `.env`. Incluido en el commit del usuario `1e8d952`.
+
+**Relacionado (riesgo 17):** la auditoría de secretos no encontró credenciales reales en los archivos
+a versionar, pero la contraseña de PostgreSQL **persiste en el historial de git** (`785bf60` y
+anteriores) — pendiente de decisión (rotación y/o limpieza de historial).
