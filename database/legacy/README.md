@@ -21,5 +21,5 @@ backend/src/main/resources/db/migration/V2__seed_demo.sql
 ```
 
 Para provisionar una base de datos, usa esas migraciones (ver `docs/base-datos.md`). Flyway está
-**desactivado** por defecto; su activación es una decisión pendiente (ver `docs/ai-memory/DECISIONS.md`,
+**desactivado** por defecto; su activación es una decisión pendiente (ver la memoria del proyecto,
 D-31).

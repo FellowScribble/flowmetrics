@@ -138,8 +138,8 @@ java -jar backend.jar --spring.profiles.active=flyway
   pg_dump -h 127.0.0.1 -U <usuario> --schema-only --no-owner --no-privileges flowmetrics \
     | psql -d flowmetrics_test
   ```
-- Ver decisiones **D-09**, **D-22**, **D-26**, **D-31** y **D-36** en `docs/ai-memory/DECISIONS.md`, y el
-  riesgo 13 en `docs/ai-memory/PROJECT_STATUS.md`.
+- Ver decisiones **D-09**, **D-22**, **D-26**, **D-31** y **D-36**, y el riesgo 13, en la memoria del
+  proyecto (mantenida fuera del repositorio).
 
 ## Credenciales
 

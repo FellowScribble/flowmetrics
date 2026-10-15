@@ -1,6 +1,6 @@
 # FlowMetrics — Roadmap
 
-> Estado a 2026-10-14. Basado en `docs/ai-memory/NEXT_STEPS.md` y `PROJECT_STATUS.md`.
+> Estado a 2026-10-14.
 > Regla de evidencia: no se declara «hecho» por compilar; cada fase se cierra con una prueba real
 > registrada (HTTP, persistencia o test).
 

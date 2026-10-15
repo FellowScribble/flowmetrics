@@ -17,7 +17,7 @@ flowmetrics/
 ├── backend/     # Spring Boot (Maven)
 ├── frontend/    # React + Vite
 ├── database/legacy/  # SQL históricos (NO usar; ver database/legacy/README.md)
-└── docs/        # documentación y memoria (ai-memory/)
+└── docs/        # documentación (api, arquitectura, base-datos, roadmap, despliegue)
 ```
 
 ## Backend (Spring Boot)
@@ -62,7 +62,7 @@ Organización por capas bajo `com.flowmetrics.backend`:
   `InsufficientStockException` → **400**, `TemplateCompanyProtectedException` → **409**.
 - Los errores no gestionados usan el manejo por defecto de Spring. En `application.properties` se
   fijan `spring.web.error.include-stacktrace/message/binding-errors=never` para no filtrar detalle
-  técnico (ver `docs/ai-memory/PROJECT_STATUS.md` 4.7).
+  técnico.
 
 ### CORS
 
@@ -94,7 +94,8 @@ Organización por capas bajo `com.flowmetrics.backend`:
   (`application-flyway.properties`: `baseline-on-migrate=true`, `baseline-version=2`). Activación
   **hecha en desarrollo** (baseline v2 sobre `flowmetrics` sin ejecutar V1/V2); el arranque habitual no
   la cambia.
-  Ver `docs/base-datos.md` y las decisiones D-09/D-22/D-31/D-36 en `docs/ai-memory/DECISIONS.md`.
+  Ver `docs/base-datos.md` y las decisiones D-09/D-22/D-31/D-36 en la memoria del proyecto (mantenida
+  fuera del repositorio).
 - Los SQL antiguos están **archivados en `database/legacy/`** y **no son utilizables tal cual** (índice
   creado antes que la tabla en `V1_create_schema.sql`; la semilla no coincide con los datos reales;
   `flowmetrics_v1.backup.sql` está vacío). La fuente de verdad son las migraciones de Flyway.
