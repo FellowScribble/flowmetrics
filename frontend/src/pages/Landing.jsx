@@ -1,23 +1,33 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { animate, stagger } from 'animejs';
 import { 
   BarChart3, 
   Users, 
   Package, 
   ShoppingCart, 
   TrendingUp, 
-  ShieldCheck, 
   ArrowRight, 
   Sparkles, 
   Code2, 
-  X, 
   Activity, 
   Mail,
-  ExternalLink
+  ExternalLink,
+  ChevronDown,
+  Minus,
+  Check,
+  Menu,
+  X as XIcon,
 } from 'lucide-react';
+import { cn } from '../lib/cn';
 import LanguageToggle from '../i18n/LanguageToggle';
 import { useLanguage } from '../i18n/useLanguage';
+import { useToast } from '../components/ui/toast/useToast';
+import SignupWizardModal from '../components/marketing/SignupWizardModal';
+import LoginModal from '../components/marketing/LoginModal';
+
+const DEV_EMAIL = 'andreavierahernandez1@gmail.com';
 
 // Componente de Canvas para la cuadrícula interactiva de puntos (Efecto Aceternity UI adaptado)
 function HeroDotGridCanvas() {
@@ -53,7 +63,8 @@ function HeroDotGridCanvas() {
         this.vx = 0;
         this.vy = 0;
         this.size = 4;
-        this.alpha = Math.random() * 0.4 + 0.15;
+        this.alpha = Math.random() * 0.3 + 0.12;
+        this.currentAlpha = this.alpha;
         this.twinkleSpeed = Math.random() * 0.02 + 0.005;
         this.twinkleOffset = Math.random() * Math.PI * 2;
       }
@@ -92,7 +103,7 @@ function HeroDotGridCanvas() {
       }
 
       draw(ctx) {
-        ctx.fillStyle = `rgba(255, 255, 255, 0.9)`; // Tono morado elegante
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.currentAlpha ?? 0.3})`;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
@@ -109,6 +120,28 @@ function HeroDotGridCanvas() {
     };
 
     initDots();
+
+    // Con «reducir movimiento» el canvas se dibuja una sola vez, sin bucle de
+    // animación ni interacción con el ratón.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      window.removeEventListener('resize', handleResize);
+      const drawStatic = () => {
+        ctx.clearRect(0, 0, width, height);
+        for (let i = 0; i < dots.length; i++) {
+          dots[i].currentAlpha = dots[i].alpha;
+          dots[i].draw(ctx);
+        }
+      };
+      const handleStaticResize = () => {
+        width = canvas.width = canvas.offsetWidth;
+        height = canvas.height = canvas.offsetHeight;
+        initDots();
+        drawStatic();
+      };
+      drawStatic();
+      window.addEventListener('resize', handleStaticResize);
+      return () => window.removeEventListener('resize', handleStaticResize);
+    }
 
     const mouse = { x: null, y: null };
 
@@ -154,16 +187,23 @@ function HeroDotGridCanvas() {
   return (
     <canvas 
       ref={canvasRef} 
-      className="absolute inset-0 w-full h-full pointer-events-auto -z-10 opacity-75"
+      className="absolute inset-0 w-full h-full pointer-events-auto -z-10 opacity-60"
     />
   );
 }
 
 // Tarjeta flotante de la desarrolladora. Sube lo justo para no tapar el footer.
+// Visible también en tablet y móvil: el hover solo actúa con puntero de ratón y
+// el botón de la cabecera (con aria-expanded) permite abrir/cerrar con clic,
+// toque y teclado.
 function DevCard() {
   const { t } = useLanguage();
-  const [isCardExpanded, setIsCardExpanded] = useState(false);
+  const toast = useToast();
+  const reduceMotion = useReducedMotion();
+  const [pinned, setPinned] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const cardRef = useRef(null);
+  const isCardExpanded = pinned || hovered;
 
   useEffect(() => {
     const updatePosition = () => {
@@ -183,106 +223,629 @@ function DevCard() {
     };
   }, []);
 
+  // Al fijar la tarjeta se puede cerrar con Escape o pulsando fuera de ella.
+  useEffect(() => {
+    if (!pinned) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setPinned(false);
+    };
+    const onPointerDown = (event) => {
+      if (cardRef.current && !cardRef.current.contains(event.target)) setPinned(false);
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+    };
+  }, [pinned]);
+
+  // Solo el ratón controla la expansión por hover; en táctil, hover no aplica.
+  const handlePointerEnter = (event) => {
+    if (event.pointerType === 'mouse') setHovered(true);
+  };
+  const handlePointerLeave = (event) => {
+    if (event.pointerType === 'mouse') setHovered(false);
+  };
+
+  const togglePinned = () => setPinned((value) => !value);
+
+  // Copia el correo al portapapeles en lugar de abrir el cliente de correo.
+  const copyEmail = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(DEV_EMAIL);
+      } else {
+        const area = document.createElement('textarea');
+        area.value = DEV_EMAIL;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        document.body.removeChild(area);
+      }
+      toast.success(t('landing.devCardEmailCopied'));
+    } catch {
+      toast.error(t('landing.devCardEmailCopyError'));
+    }
+  };
+
   return (
     <motion.div 
       ref={cardRef}
-      initial={{ opacity: 0, x: -20 }}
+      initial={reduceMotion ? false : { opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.8, delay: 0.8 }}
+      transition={{ duration: reduceMotion ? 0 : 0.8, delay: reduceMotion ? 0 : 0.8 }}
       style={{ bottom: 24 }}
-      className="fixed left-6 z-50 hidden lg:block"
-      onMouseEnter={() => setIsCardExpanded(true)}
-      onMouseLeave={() => setIsCardExpanded(false)}
+      className="fixed left-3 z-50 sm:left-6"
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
     >
       <motion.div 
-        animate={{ width: isCardExpanded ? '280px' : '200px' }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-        className="bg-zinc-900/95 border border-purple-950/60 rounded-xl p-3 shadow-2xl shadow-purple-950/30 backdrop-blur-md overflow-hidden"
+        animate={{ width: isCardExpanded ? 280 : 200 }}
+        transition={{ duration: reduceMotion ? 0 : 0.3, ease: "easeOut" }}
+        className="max-w-[calc(100vw-1.5rem)] bg-zinc-900/95 border border-purple-950/60 rounded-xl p-2 sm:p-3 shadow-2xl shadow-purple-950/30 backdrop-blur-md overflow-hidden"
       >
-        <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={togglePinned}
+          aria-expanded={isCardExpanded}
+          aria-controls="dev-card-panel"
+          aria-label={`Andrea Viera Hernández — ${t('landing.devCardRole')}`}
+          className="flex w-full cursor-pointer items-center gap-3 rounded-lg bg-transparent text-left"
+        >
           <div className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800 flex items-center justify-center text-xs font-semibold text-purple-300 shrink-0 shadow-inner">
             AV
           </div>
-          <div className="overflow-hidden whitespace-nowrap">
+          <div className="min-w-0 flex-1 overflow-hidden whitespace-nowrap">
             <div className="text-xs font-semibold text-zinc-200 truncate">Andrea Viera Hernández</div>
             <div className="text-[11px] text-purple-400 truncate">{t('landing.devCardRole')}</div>
           </div>
-        </div>
+          <ChevronDown
+            aria-hidden="true"
+            className={cn(
+              'w-4 h-4 shrink-0 text-purple-400 transition-transform',
+              isCardExpanded && 'rotate-180',
+            )}
+          />
+        </button>
 
-        <AnimatePresence>
-          {isCardExpanded && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="mt-3 pt-3 border-t border-zinc-800 space-y-2 text-xs text-zinc-400"
-            >
-              <a href="mailto:andreavierahernandez1@gmail.com" className="flex items-center gap-2 hover:text-purple-300 transition-colors truncate">
-                <Mail className="w-3.5 h-3.5 shrink-0 text-purple-400" />
-                <span className="truncate">andreavierahernandez1@gmail.com</span>
-              </a>
-              <a href="https://www.linkedin.com/in/andrea-viera-hernandez-0449652ba" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-purple-300 transition-colors">
-                <ExternalLink className="w-3.5 h-3.5 shrink-0 text-purple-400" />
-                <span>{t('landing.devCardLinkedin')}</span>
-              </a>
-              <a href="https://github.com/FellowScribble?tab=repositories" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-purple-300 transition-colors">
-                <ExternalLink className="w-3.5 h-3.5 shrink-0 text-purple-400" />
-                <span>{t('landing.devCardGithub')}</span>
-              </a>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div id="dev-card-panel" className="overflow-hidden">
+          <AnimatePresence initial={false}>
+            {isCardExpanded && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: reduceMotion ? 0 : 0.2 }}
+                className="mt-3 pt-3 border-t border-zinc-800 space-y-2 text-xs text-zinc-400"
+              >
+                <div className="text-xs font-semibold text-zinc-200">Andrea Viera Hernández</div>
+                <button
+                  type="button"
+                  onClick={copyEmail}
+                  title={t('landing.devCardEmailCopyHint')}
+                  aria-label={t('landing.devCardEmailCopyHint')}
+                  className="flex w-full items-center gap-2 text-left hover:text-purple-300 transition-colors truncate"
+                >
+                  <Mail className="w-3.5 h-3.5 shrink-0 text-purple-400" />
+                  <span className="truncate">{DEV_EMAIL}</span>
+                </button>
+                <a href="https://www.linkedin.com/in/andrea-viera-hernandez-0449652ba" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-purple-300 transition-colors">
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0 text-purple-400" />
+                  <span>{t('landing.devCardLinkedin')}</span>
+                </a>
+                <a href="https://github.com/FellowScribble?tab=repositories" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-purple-300 transition-colors">
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0 text-purple-400" />
+                  <span>{t('landing.devCardGithub')}</span>
+                </a>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+// Divide un texto en letras para animarlas por separado con Anime.js.
+// Las letras se agrupan en palabras (`inline-block whitespace-nowrap`) para
+// que el navegador no corte palabras a mitad. `hidden` deja las letras
+// invisibles hasta que la animación las muestre (evita un destello del texto
+// completo en el primer render).
+function SplitLetters({ text, hidden = false }) {
+  const hiddenStyle = hidden ? { opacity: 0 } : undefined;
+  const words = text.split(' ');
+  return words.map((word, wordIndex) => (
+    <span key={`word-${wordIndex}`}>
+      <span className="inline-block whitespace-nowrap">
+        {Array.from(word).map((char, charIndex) => (
+          <span
+            key={`${char}-${charIndex}`}
+            data-letter="true"
+            aria-hidden="true"
+            className="inline-block"
+            style={hiddenStyle}
+          >
+            {char}
+          </span>
+        ))}
+      </span>
+      {wordIndex < words.length - 1 && (
+        <span data-letter="true" aria-hidden="true" className="inline-block" style={hiddenStyle}>
+          {'\u00A0'}
+        </span>
+      )}
+    </span>
+  ));
+}
+
+// Titular del hero animado con Anime.js: cada letra sube con desenfoque
+// (stagger). Se re-ejecuta al cambiar el idioma. Con `prefers-reduced-motion`
+// se muestra estático.
+function HeroTitle() {
+  const { t } = useLanguage();
+  const reduceMotion = useReducedMotion();
+  const titleRef = useRef(null);
+
+  useEffect(() => {
+    if (reduceMotion) return undefined;
+    const letters = titleRef.current?.querySelectorAll('[data-letter]');
+    if (!letters?.length) return undefined;
+    const animation = animate(letters, {
+      opacity: [0, 1],
+      y: [30, 0],
+      filter: ['blur(10px)', 'blur(0px)'],
+      delay: stagger(28),
+      duration: 750,
+      ease: 'outExpo',
+    });
+    return () => animation.pause();
+  }, [reduceMotion, t]);
+
+  return (
+    <h1
+      ref={titleRef}
+      aria-label={`${t('landing.heroTitle1')} ${t('landing.heroTitle2')}`}
+      className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] text-white"
+    >
+      <SplitLetters text={t('landing.heroTitle1')} hidden={!reduceMotion} />
+      <br />
+      <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 via-purple-300 to-zinc-400 font-normal">
+        <SplitLetters text={t('landing.heroTitle2')} hidden={!reduceMotion} />
+      </span>
+    </h1>
+  );
+}
+
+// Ejecuta `onEnter` una sola vez cuando el elemento entra en pantalla.
+function useInViewOnce(ref, onEnter) {
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return undefined;
+    let started = false;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!started && entries.some((entry) => entry.isIntersecting)) {
+          started = true;
+          observer.disconnect();
+          onEnter();
+        }
+      },
+      { threshold: 0.3 },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref, onEnter]);
+}
+
+// KPIs del mockup: los números suben de 0 al valor real (count-up) cuando la
+// tarjeta entra en pantalla. Muy "dashboard SaaS".
+function MockupKpis() {
+  const { t, locale } = useLanguage();
+  const reduceMotion = useReducedMotion();
+  const gridRef = useRef(null);
+  const revenueRef = useRef(null);
+  const salesRef = useRef(null);
+  const customersRef = useRef(null);
+
+  const currency = useMemo(
+    () => new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }),
+    [locale],
+  );
+  const integer = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+
+  const renderValues = useCallback(
+    (revenueValue, salesValue, customersValue) => {
+      if (revenueRef.current) revenueRef.current.textContent = currency.format(revenueValue);
+      if (salesRef.current) salesRef.current.textContent = integer.format(salesValue);
+      if (customersRef.current) customersRef.current.textContent = integer.format(customersValue);
+    },
+    [currency, integer],
+  );
+
+  const run = useCallback(() => {
+    const revenue = { value: 0 };
+    const sales = { value: 0 };
+    const customers = { value: 0 };
+    animate(revenue, {
+      value: 24580,
+      duration: 1500,
+      ease: 'outExpo',
+      onUpdate: () => {
+        if (revenueRef.current) revenueRef.current.textContent = currency.format(Math.round(revenue.value));
+      },
+    });
+    animate(sales, {
+      value: 142,
+      duration: 1500,
+      delay: 150,
+      ease: 'outExpo',
+      onUpdate: () => {
+        if (salesRef.current) salesRef.current.textContent = integer.format(Math.round(sales.value));
+      },
+    });
+    animate(customers, {
+      value: 89,
+      duration: 1500,
+      delay: 300,
+      ease: 'outExpo',
+      onUpdate: () => {
+        if (customersRef.current) customersRef.current.textContent = integer.format(Math.round(customers.value));
+      },
+    });
+  }, [currency, integer]);
+
+  useEffect(() => {
+    if (reduceMotion) renderValues(24580, 142, 89);
+    else renderValues(0, 0, 0);
+  }, [reduceMotion, renderValues]);
+
+  useInViewOnce(gridRef, run);
+
+  return (
+    <div ref={gridRef} className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+      <div className="bg-zinc-950 p-2.5 sm:p-3 rounded-lg border border-zinc-800/60 min-w-0">
+        <div className="text-[10px] sm:text-[11px] text-zinc-500 truncate">{t('landing.mockupRevenue')}</div>
+        <div className="text-sm sm:text-lg font-semibold text-white mt-1 whitespace-nowrap">
+          <span ref={revenueRef} />
+        </div>
+        <div className="text-[10px] text-purple-400 mt-1 flex items-center gap-1 whitespace-nowrap">
+          <TrendingUp className="w-3 h-3 text-purple-400 shrink-0" /> {t('landing.mockupRevenueChange')}
+        </div>
+      </div>
+      <div className="bg-zinc-950 p-2.5 sm:p-3 rounded-lg border border-zinc-800/60 min-w-0">
+        <div className="text-[10px] sm:text-[11px] text-zinc-500 truncate">{t('landing.mockupSales')}</div>
+        <div className="text-sm sm:text-lg font-semibold text-white mt-1 whitespace-nowrap">
+          <span ref={salesRef} />
+        </div>
+        <div className="text-[10px] text-zinc-400 mt-1 truncate">{t('landing.mockupSalesAvg')}</div>
+      </div>
+      <div className="bg-zinc-950 p-2.5 sm:p-3 rounded-lg border border-zinc-800/60 min-w-0">
+        <div className="text-[10px] sm:text-[11px] text-zinc-500 truncate">{t('landing.mockupCustomers')}</div>
+        <div className="text-sm sm:text-lg font-semibold text-white mt-1 whitespace-nowrap">
+          <span ref={customersRef} />
+        </div>
+        <div className="text-[10px] text-zinc-400 mt-1 truncate">{t('landing.mockupCustomersNew')}</div>
+      </div>
+    </div>
+  );
+}
+
+// Gráfica del mockup: la línea se dibuja sola (stroke-dashoffset) y el área
+// degradada aparece detrás, como un dashboard cargando datos.
+function MockupChart() {
+  const { t } = useLanguage();
+  const reduceMotion = useReducedMotion();
+  const wrapRef = useRef(null);
+  const lineRef = useRef(null);
+  const areaRef = useRef(null);
+
+  const run = useCallback(() => {
+    if (lineRef.current) {
+      animate(lineRef.current, { strokeDashoffset: [1, 0], duration: 1600, ease: 'outExpo' });
+    }
+    if (areaRef.current) {
+      animate(areaRef.current, { opacity: [0, 1], duration: 1200, delay: 500, ease: 'outQuad' });
+    }
+  }, []);
+
+  useInViewOnce(wrapRef, run);
+
+  const linePath =
+    'M0,80 C40,74 60,56 96,60 C132,64 150,44 186,48 C222,52 244,30 280,26 C300,24 312,22 320,20';
+
+  return (
+    <div ref={wrapRef} className="relative h-28 bg-zinc-950 rounded-lg border border-zinc-800/60 overflow-hidden">
+      <svg
+        viewBox="0 0 320 100"
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id="hero-chart-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#a855f7" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path
+          ref={areaRef}
+          d={`${linePath} L320,100 L0,100 Z`}
+          fill="url(#hero-chart-area)"
+          style={{ opacity: reduceMotion ? 1 : 0 }}
+        />
+        <path
+          ref={lineRef}
+          d={linePath}
+          fill="none"
+          stroke="#a855f7"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          pathLength="1"
+          style={{ strokeDasharray: 1, strokeDashoffset: reduceMotion ? 0 : 1 }}
+        />
+      </svg>
+      <span className="absolute bottom-2 left-3 text-[10px] text-zinc-600 font-mono">
+        {t('landing.mockupChart')}
+      </span>
+    </div>
+  );
+}
+
+// Chip "EN VIVO": pulso suave en bucle, como los indicadores de datos reales.
+function MockupLiveChip() {
+  const { t } = useLanguage();
+  const reduceMotion = useReducedMotion();
+  const chipRef = useRef(null);
+
+  useEffect(() => {
+    if (reduceMotion) return undefined;
+    const animation = animate(chipRef.current, {
+      opacity: [1, 0.35, 1],
+      duration: 1800,
+      loop: true,
+      ease: 'inOutQuad',
+    });
+    return () => animation.pause();
+  }, [reduceMotion]);
+
+  return (
+    <span
+      ref={chipRef}
+      className="text-[10px] text-purple-300 bg-purple-950/50 px-2 py-0.5 rounded border border-purple-900/40 flex items-center gap-1.5"
+    >
+      <Activity className="w-3 h-3 text-purple-400" /> {t('landing.mockupLive')}
+    </span>
+  );
+}
+
+// Barra de progreso del catálogo: crece de 0 a 75% al entrar en pantalla.
+function MockupCatalogProgress() {
+  const reduceMotion = useReducedMotion();
+  const wrapRef = useRef(null);
+  const barRef = useRef(null);
+
+  const run = useCallback(() => {
+    if (barRef.current) {
+      animate(barRef.current, { width: ['0%', '75%'], duration: 1300, ease: 'outExpo' });
+    }
+  }, []);
+
+  useInViewOnce(wrapRef, run);
+
+  return (
+    <div ref={wrapRef} className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800">
+      <div
+        ref={barRef}
+        style={{ width: reduceMotion ? '75%' : '0%' }}
+        className="bg-gradient-to-r from-purple-900 to-purple-500 h-full rounded-full"
+      />
+    </div>
+  );
+}
+
+// Filas de la tarjeta de transacciones: entran deslizándose una tras otra
+// (efecto de feed en vivo).
+function MockupTransactions() {
+  const { t } = useLanguage();
+  const reduceMotion = useReducedMotion();
+  const rowsRef = useRef(null);
+
+  useEffect(() => {
+    if (reduceMotion) return undefined;
+    const rows = rowsRef.current?.querySelectorAll('[data-tx-row]');
+    if (!rows?.length) return undefined;
+    const animation = animate(rows, {
+      opacity: [0, 1],
+      x: [16, 0],
+      delay: stagger(180, { start: 1400 }),
+      duration: 600,
+      ease: 'outExpo',
+    });
+    return () => animation.pause();
+  }, [reduceMotion, t]);
+
+  return (
+    <div ref={rowsRef} className="space-y-2 text-xs">
+      <div
+        data-tx-row="true"
+        style={reduceMotion ? undefined : { opacity: 0 }}
+        className="flex justify-between items-center p-2 rounded bg-zinc-900 border border-zinc-800/60"
+      >
+        <span className="text-zinc-300">{t('landing.mockupInvoice1')}</span>
+        <span className="text-purple-300 font-mono">+340,00 €</span>
+      </div>
+      <div
+        data-tx-row="true"
+        style={reduceMotion ? undefined : { opacity: 0 }}
+        className="flex justify-between items-center p-2 rounded bg-zinc-900 border border-zinc-800/60"
+      >
+        <span className="text-zinc-300">{t('landing.mockupInvoice2')}</span>
+        <span className="text-purple-300 font-mono">+125,50 €</span>
+      </div>
+    </div>
+  );
+}
+
+// Marca de comparación (sí / no / parcial) para la tabla comparativa.
+function CompareMark({ value, highlight = false }) {
+  const { t } = useLanguage();
+  if (value === 'yes') {
+    return (
+      <span className="inline-flex items-center justify-center" title={t('landing.compareYes')}>
+        <Check className={cn('h-4 w-4', highlight ? 'text-emerald-400' : 'text-emerald-500')} />
+      </span>
+    );
+  }
+  if (value === 'no') {
+    return (
+      <span className="inline-flex items-center justify-center" title={t('landing.compareNo')}>
+        <XIcon className="h-4 w-4 text-zinc-600" />
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center justify-center" title={t('landing.comparePartial')}>
+      <Minus className="h-4 w-4 text-amber-500/80" />
+    </span>
+  );
+}
+
+// Acordeón de preguntas frecuentes.
+function FaqList() {
+  const { t } = useLanguage();
+  const reduceMotion = useReducedMotion();
+  const [openIndex, setOpenIndex] = useState(0);
+  const items = [1, 2, 3, 4, 5, 6];
+
+  return (
+    <div className="flex flex-col gap-3">
+      {items.map((item, index) => {
+        const isOpen = openIndex === index;
+        return (
+          <div
+            key={item}
+            className={cn(
+              'overflow-hidden rounded-xl border bg-zinc-950 transition-colors',
+              isOpen ? 'border-purple-900/60' : 'border-zinc-900',
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => setOpenIndex(isOpen ? -1 : index)}
+              aria-expanded={isOpen}
+              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+            >
+              <span className="text-sm font-medium text-zinc-100">
+                {t(`landing.faqQ${item}`)}
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                className={cn(
+                  'h-4 w-4 shrink-0 text-purple-400 transition-transform',
+                  isOpen && 'rotate-180',
+                )}
+              />
+            </button>
+            <AnimatePresence initial={false}>
+              {isOpen && (
+                <motion.div
+                  initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
+                  transition={{ duration: reduceMotion ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <p className="px-5 pb-4 text-sm leading-relaxed text-zinc-400">
+                    {t(`landing.faqA${item}`)}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
 export default function Landing() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalSubmitted, setModalSubmitted] = useState(false);
-  const [hideHeader, setHideHeader] = useState(false);
+  const [signupOpen, setSignupOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // Estado para el formulario simulado
-  const [formData, setFormData] = useState({ name: '', company: '', email: '', password: '' });
+  const goToDemo = () => {
+    setSignupOpen(false);
+    setLoginOpen(false);
+    navigate('/demo/dashboard');
+  };
 
-  // Muestra el header al bajar y lo oculta al subir (el aviso permanece siempre visible)
-  const lastScrollY = useRef(0);
+  const reduceMotion = useReducedMotion();
+  const [scrolled, setScrolled] = useState(false);
+  const [pointerNearTop, setPointerNearTop] = useState(false);
+  const [canHover, setCanHover] = useState(true);
+
+  // Desplazamiento suave a las secciones del landing (respetando reduced-motion).
+  // Deja el primer texto de la sección justo un poco por debajo del borde superior.
+  const scrollToSection = useCallback(
+    (id) => {
+      const section = document.getElementById(id);
+      if (!section) return;
+      const paddingTop = parseFloat(window.getComputedStyle(section).paddingTop) || 0;
+      const gap = 40;
+      const top = section.getBoundingClientRect().top + window.scrollY + paddingTop - gap;
+      window.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
+    },
+    [reduceMotion],
+  );
+
+  // ¿El usuario ha bajado lo suficiente como para ocultar la barra?
   useEffect(() => {
-    const handleScroll = () => {
-      const y = window.scrollY;
-      const delta = y - lastScrollY.current;
-      if (Math.abs(delta) > 6) {
-        if (y < 80) {
-          setHideHeader(false);
-        } else {
-          setHideHeader(delta < 0);
-        }
-        lastScrollY.current = y;
-      }
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 80);
+    handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleOpenModal = () => {
-    setModalSubmitted(false);
-    setFormData({ name: '', company: '', email: '', password: '' });
-    setIsModalOpen(true);
-  };
+  // Al llevar el ratón a la franja superior reaparece; al alejarlo se esconde
+  // de nuevo (con histéresis para evitar parpadeos).
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      setPointerNearTop((prev) => (prev ? event.clientY <= 140 : event.clientY <= 90));
+    };
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
-  const handleModalSubmit = (e) => {
-    e.preventDefault();
-    setModalSubmitted(true);
-  };
+  // Los dispositivos táctiles no tienen hover: mantienen la barra siempre visible
+  useEffect(() => {
+    const query = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const update = () => setCanHover(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+
+  const showHeader = !canHover || !scrolled || pointerNearTop;
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 selection:bg-purple-950 selection:text-white font-sans antialiased overflow-x-clip">
       
-      {/* AVISO STICKY + NAVBAR (el aviso permanece visible; el header se oculta al subir) */}
+      {/* AVISO + NAVBAR: visibles arriba del todo; al bajar desaparecen (fade down)
+          y reaparecen al acercar el ratón a la parte superior de la pantalla */}
       <div className="sticky top-0 z-50">
+        <motion.div
+          initial={false}
+          animate={{ y: showHeader ? 0 : '-100%', opacity: showHeader ? 1 : 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.3, ease: 'easeInOut' }}
+        >
         <div className="relative z-10 bg-black border-b border-purple-950/40 px-4 py-2.5 text-xs text-zinc-400 text-center font-medium flex items-center justify-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-purple-500 shrink-0" />
           <span>
@@ -290,49 +853,145 @@ export default function Landing() {
           </span>
         </div>
 
-        <motion.header
-          initial={false}
-          animate={{ y: hideHeader ? '-100%' : 0 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="bg-black/90 backdrop-blur-md"
-        >
-          <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between border-b border-zinc-900">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center shadow-inner shadow-purple-950/20">
+        <header className="bg-black/90 backdrop-blur-md">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-3 border-b border-zinc-900">
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })}
+              aria-label={t('aria.backHome')}
+              className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+            >
+              <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center shadow-inner shadow-purple-950/20 transition-colors group-hover:border-purple-800/60">
                 <BarChart3 className="w-4 h-4 text-purple-400" />
               </div>
-              <span className="text-lg font-semibold tracking-tight text-white">
+              <span className="hidden sm:inline text-lg font-semibold tracking-tight text-white transition-colors group-hover:text-purple-200">
                 FlowMetrics
               </span>
-            </div>
+            </button>
 
-            <nav className="hidden md:flex items-center gap-8 text-sm text-zinc-400 font-medium">
-              <a href="#features" className="hover:text-purple-300 transition-colors">{t('landing.navFeatures')}</a>
-              <a href="#pricing" className="hover:text-purple-300 transition-colors">{t('landing.navPricing')}</a>
-              <a href="#testimonials" className="hover:text-purple-300 transition-colors">{t('landing.navTestimonials')}</a>
-            </nav>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <nav className="hidden lg:flex items-center gap-4 text-sm text-zinc-400 font-medium">
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('features')}
+                  className="hover:text-purple-300 transition-colors cursor-pointer"
+                >
+                  {t('landing.navFeatures')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('pricing')}
+                  className="hover:text-purple-300 transition-colors cursor-pointer"
+                >
+                  {t('landing.navPricing')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('testimonials')}
+                  className="hover:text-purple-300 transition-colors cursor-pointer"
+                >
+                  {t('landing.navTestimonials')}
+                </button>
+              </nav>
 
-            <div className="flex items-center gap-4">
               <button 
-                onClick={handleOpenModal}
-                className="hidden sm:inline-flex text-sm font-medium text-zinc-400 hover:text-purple-300 transition-colors cursor-pointer"
+                onClick={() => setLoginOpen(true)}
+                className="hidden lg:inline-flex text-sm font-medium text-zinc-400 transition-colors hover:text-purple-300 cursor-pointer"
+              >
+                {t('landing.navLogin')}
+              </button>
+              <button 
+                onClick={() => setSignupOpen(true)}
+                className="hidden lg:inline-flex text-sm font-medium text-zinc-400 transition-colors hover:text-purple-300 cursor-pointer"
               >
                 {t('landing.navStartFree')}
               </button>
               <motion.button 
-                whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(88, 28, 135, 0.4)" }}
+                whileHover={{ scale: 1.05, boxShadow: "0 0 22px rgba(139, 47, 212, 0.55)" }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 onClick={() => navigate('/demo/dashboard')}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-950 to-purple-900 hover:from-purple-900 hover:to-purple-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg shadow-purple-950/40 cursor-pointer border border-purple-800/40"
+                className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-[#7e22ce] to-[#581c87] hover:from-[#8b2fd4] hover:to-[#6b21a8] text-white text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg shadow-purple-950/40 cursor-pointer border border-purple-800/40 whitespace-nowrap"
               >
                 {t('landing.navViewDemo')}
                 <ArrowRight className="w-3.5 h-3.5" />
               </motion.button>
               <LanguageToggle />
+              <button
+                type="button"
+                onClick={() => setMenuOpen((open) => !open)}
+                aria-label={t('aria.openMenu')}
+                aria-expanded={menuOpen}
+                className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg border border-zinc-800 text-zinc-300 transition-colors hover:text-purple-300 hover:border-purple-900/60 cursor-pointer"
+              >
+                {menuOpen ? <XIcon className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
             </div>
           </div>
-        </motion.header>
+        </header>
+
+        {/* Menú desplegable para móvil/tablet (la nav inline solo aparece en lg) */}
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={reduceMotion ? undefined : { opacity: 0, height: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.25, ease: 'easeInOut' }}
+              className="lg:hidden overflow-hidden bg-black/95 backdrop-blur-md border-b border-zinc-900"
+            >
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col gap-1 text-sm font-medium text-zinc-300">
+                <button
+                  type="button"
+                  onClick={() => { scrollToSection('features'); setMenuOpen(false); }}
+                  className="text-left py-2.5 hover:text-purple-300 transition-colors cursor-pointer"
+                >
+                  {t('landing.navFeatures')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { scrollToSection('pricing'); setMenuOpen(false); }}
+                  className="text-left py-2.5 hover:text-purple-300 transition-colors cursor-pointer"
+                >
+                  {t('landing.navPricing')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { scrollToSection('testimonials'); setMenuOpen(false); }}
+                  className="text-left py-2.5 hover:text-purple-300 transition-colors cursor-pointer"
+                >
+                  {t('landing.navTestimonials')}
+                </button>
+                <div className="h-px bg-zinc-900 my-1" />
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setLoginOpen(true); setMenuOpen(false); }}
+                    className="text-sm font-medium text-zinc-300 transition-colors hover:text-purple-300 cursor-pointer"
+                  >
+                    {t('landing.navLogin')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSignupOpen(true); setMenuOpen(false); }}
+                    className="text-sm font-medium text-zinc-300 transition-colors hover:text-purple-300 cursor-pointer"
+                  >
+                    {t('landing.navStartFree')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setMenuOpen(false); navigate('/demo/dashboard'); }}
+                    className="sm:hidden inline-flex items-center gap-2 bg-gradient-to-r from-[#7e22ce] to-[#581c87] text-white text-sm font-medium px-4 py-2 rounded-lg border border-purple-800/40 cursor-pointer"
+                  >
+                    {t('landing.navViewDemo')}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        </motion.div>
       </div>
 
       {/* HERO SECTION CON CANVAS DE PUNTOS INTERACTIVO */}
@@ -354,17 +1013,7 @@ export default function Landing() {
             <span>{t('landing.heroBadge')}</span>
           </motion.div>
 
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.15 }}
-            className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] text-white"
-          >
-            {t('landing.heroTitle1')} <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 via-purple-300 to-zinc-400 font-normal">
-              {t('landing.heroTitle2')}
-            </span>
-          </motion.h1>
+          <HeroTitle />
 
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
@@ -382,11 +1031,11 @@ export default function Landing() {
             className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <motion.button 
-              whileHover={{ scale: 1.04, y: -2, boxShadow: "0 0 25px rgba(88, 28, 135, 0.5)" }}
+              whileHover={{ scale: 1.04, y: -2, boxShadow: "0 0 28px rgba(139, 47, 212, 0.6)" }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
               onClick={() => navigate('/demo/dashboard')}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-950 to-purple-900 hover:from-purple-900 hover:to-purple-800 text-white font-medium px-6 py-3 rounded-lg transition-all shadow-xl shadow-purple-950/50 hover:shadow-purple-900/70 text-sm cursor-pointer border border-purple-800/40"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#7e22ce] to-[#581c87] hover:from-[#8b2fd4] hover:to-[#6b21a8] text-white font-medium px-6 py-3 rounded-lg transition-all shadow-xl shadow-purple-950/50 hover:shadow-purple-900/70 text-sm cursor-pointer border border-purple-800/40"
             >
               {t('landing.heroCtaDemo')}
               <ArrowRight className="w-4 h-4" />
@@ -396,7 +1045,7 @@ export default function Landing() {
               whileHover={{ scale: 1.04, y: -2, borderColor: "rgba(147, 51, 234, 0.5)" }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              onClick={handleOpenModal}
+              onClick={() => setSignupOpen(true)}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-medium px-6 py-3 rounded-lg transition-all border border-purple-950/40 text-sm cursor-pointer shadow-md"
             >
               {t('landing.heroCtaStart')}
@@ -413,8 +1062,8 @@ export default function Landing() {
         >
           {/* Mockup principal central / posterior */}
           <motion.div 
-            animate={{ y: [0, -10, 0] }}
-            transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+            animate={{ y: [0, -8, 0] }}
+            transition={{ repeat: Infinity, duration: 6.5, ease: "easeInOut" }}
             className="absolute inset-x-0 mx-auto w-full max-w-5xl bg-zinc-900/95 border border-purple-950/50 rounded-xl p-3 sm:p-4 shadow-2xl shadow-purple-950/25 backdrop-blur-xl z-10"
           >
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-4 px-2">
@@ -430,70 +1079,39 @@ export default function Landing() {
             </div>
             
             {/* Contenido simulado interno del dashboard */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/60">
-                <div className="text-[11px] text-zinc-500">{t('landing.mockupRevenue')}</div>
-                <div className="text-lg font-semibold text-white mt-1">24.580 €</div>
-                <div className="text-[10px] text-purple-400 mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3 text-purple-400" /> {t('landing.mockupRevenueChange')}
-                </div>
-              </div>
-              <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/60">
-                <div className="text-[11px] text-zinc-500">{t('landing.mockupSales')}</div>
-                <div className="text-lg font-semibold text-white mt-1">142</div>
-                <div className="text-[10px] text-zinc-400 mt-1">{t('landing.mockupSalesAvg')}</div>
-              </div>
-              <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/60">
-                <div className="text-[11px] text-zinc-500">{t('landing.mockupCustomers')}</div>
-                <div className="text-lg font-semibold text-white mt-1">89</div>
-                <div className="text-[10px] text-zinc-400 mt-1">{t('landing.mockupCustomersNew')}</div>
-              </div>
-            </div>
+            <MockupKpis />
 
-            <div className="h-28 bg-zinc-950 rounded-lg border border-zinc-800/60 flex items-center justify-center text-xs text-zinc-600 font-mono">
-              {t('landing.mockupChart')}
-            </div>
+            <MockupChart />
           </motion.div>
 
           {/* Tarjeta flotante derecha - Desplazada hacia el extremo derecho de la pantalla */}
           <motion.div 
-            animate={{ y: [0, 12, 0] }}
+            animate={{ y: [0, 8, 0] }}
             transition={{ repeat: Infinity, duration: 7, ease: "easeInOut", delay: 1 }}
             className="absolute right-2 sm:right-6 lg:right-12 top-28 sm:top-36 w-64 sm:w-80 bg-zinc-950/95 border border-purple-950/60 rounded-xl p-4 shadow-2xl shadow-purple-950/35 z-20 hidden lg:block backdrop-blur-md"
           >
             <div className="text-xs font-semibold text-zinc-200 mb-2 flex items-center justify-between">
               <span>{t('landing.mockupTransactions')}</span>
-              <span className="text-[10px] text-purple-400 font-mono">{t('landing.mockupLive')}</span>
+              <MockupLiveChip />
             </div>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between items-center p-2 rounded bg-zinc-900 border border-zinc-800/60">
-                <span className="text-zinc-300">{t('landing.mockupInvoice1')}</span>
-                <span className="text-purple-300 font-mono">+340,00 €</span>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded bg-zinc-900 border border-zinc-800/60">
-                <span className="text-zinc-300">{t('landing.mockupInvoice2')}</span>
-                <span className="text-purple-300 font-mono">+125,50 €</span>
-              </div>
-            </div>
+            <MockupTransactions />
           </motion.div>
 
           {/* Tarjeta flotante izquierda - Desplazada hacia el extremo izquierdo de la pantalla */}
           <motion.div 
-            animate={{ y: [0, -8, 0] }}
-            transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 0.5 }}
+            animate={{ y: [0, -6, 0] }}
+            transition={{ repeat: Infinity, duration: 6.5, ease: "easeInOut", delay: 0.5 }}
             className="absolute left-2 sm:left-6 lg:left-12 bottom-2 sm:bottom-6 w-60 sm:w-72 bg-zinc-950/95 border border-purple-950/60 rounded-xl p-4 shadow-2xl shadow-purple-950/35 z-20 hidden lg:block backdrop-blur-md"
           >
             <div className="text-xs font-semibold text-zinc-200 mb-1">{t('landing.mockupCatalogTitle')}</div>
             <p className="text-[11px] text-zinc-400 mb-2">{t('landing.mockupCatalogDescription')}</p>
-            <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800">
-              <div className="bg-gradient-to-r from-purple-900 to-purple-500 w-3/4 h-full rounded-full" />
-            </div>
+            <MockupCatalogProgress />
           </motion.div>
         </motion.div>
       </section>
 
       {/* SECCIÓN DE CARACTERÍSTICAS / FEATURES (Animación de scroll más lenta) */}
-      <section id="features" className="py-28 max-w-7xl mx-auto px-6 border-t border-zinc-900">
+      <section id="features" className="py-28 max-w-7xl mx-auto px-6 border-t border-zinc-900 scroll-mt-32">
         <motion.div 
           initial={{ opacity: 0, y: 35 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -584,7 +1202,7 @@ export default function Landing() {
       </section>
 
       {/* SECCIÓN DE PRECIOS */}
-      <section id="pricing" className="py-28 max-w-7xl mx-auto px-6 border-t border-zinc-900">
+      <section id="pricing" className="py-28 max-w-7xl mx-auto px-6 border-t border-zinc-900 scroll-mt-32">
         <motion.div 
           initial={{ opacity: 0, y: 35 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -624,7 +1242,7 @@ export default function Landing() {
             </div>
             
             <motion.button 
-              whileHover={{ scale: 1.03, boxShadow: "0 0 15px rgba(88, 28, 135, 0.3)" }}
+              whileHover={{ scale: 1.03, boxShadow: "0 0 18px rgba(139, 47, 212, 0.45)" }}
               whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/demo/dashboard')}
               className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs border border-purple-950/60 cursor-pointer shadow-sm"
@@ -658,11 +1276,11 @@ export default function Landing() {
             </div>
             
             <motion.button 
-              whileHover={{ scale: 1.04, y: -1, boxShadow: "0 0 22px rgba(88, 28, 135, 0.5)" }}
+              whileHover={{ scale: 1.04, y: -1, boxShadow: "0 0 24px rgba(139, 47, 212, 0.55)" }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
               onClick={() => navigate('/demo/dashboard')}
-              className="w-full bg-gradient-to-r from-[#4c1d95] to-[#3b0764] hover:from-[#581c87] hover:to-[#4c1d95] text-white font-medium py-2.5 rounded-lg transition-all text-xs shadow-lg shadow-purple-950/50 cursor-pointer border border-purple-500/30"
+              className="w-full bg-gradient-to-r from-[#7e22ce] to-[#581c87] hover:from-[#8b2fd4] hover:to-[#6b21a8] text-white font-medium py-2.5 rounded-lg transition-all text-xs shadow-lg shadow-purple-950/50 cursor-pointer border border-purple-500/30"
             >
               {t('landing.planTryDemo')}
             </motion.button>
@@ -689,7 +1307,7 @@ export default function Landing() {
             </div>
             
             <motion.button 
-              whileHover={{ scale: 1.03, boxShadow: "0 0 15px rgba(88, 28, 135, 0.3)" }}
+              whileHover={{ scale: 1.03, boxShadow: "0 0 18px rgba(139, 47, 212, 0.45)" }}
               whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/demo/dashboard')}
               className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs border border-purple-950/60 cursor-pointer shadow-sm"
@@ -702,7 +1320,7 @@ export default function Landing() {
       </section>
 
       {/* TESTIMONIOS */}
-      <section id="testimonials" className="py-28 max-w-7xl mx-auto px-6 border-t border-zinc-900">
+      <section id="testimonials" className="py-28 max-w-7xl mx-auto px-6 border-t border-zinc-900 scroll-mt-32">
         <motion.div 
           initial={{ opacity: 0, y: 35 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -784,147 +1402,135 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FOOTER SIMPLE */}
-      <footer id="site-footer" className="border-t border-zinc-900 py-10 max-w-7xl mx-auto px-6 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400">
-            <BarChart3 className="w-3.5 h-3.5" />
-          </div>
-          <span className="font-medium text-zinc-300">FlowMetrics</span>
-          <span>{t('landing.footerBrandNote')}</span>
-        </div>
+      {/* SECCIÓN COMPARATIVA */}
+      <section className="py-28 max-w-7xl mx-auto px-6 border-t border-zinc-900">
+        <motion.div 
+          initial={{ opacity: 0, y: 35 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.0, ease: "easeOut" }}
+          className="text-center max-w-3xl mx-auto mb-14"
+        >
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-3">{t('landing.compareEyebrow')}</h2>
+          <h3 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+            {t('landing.compareTitle')}
+          </h3>
+          <p className="mt-4 text-zinc-400 text-sm sm:text-base">{t('landing.compareSubtitle')}</p>
+        </motion.div>
 
-        <div className="flex items-center gap-6">
-          <button 
-            onClick={() => navigate('/demo/dashboard')}
-            className="hover:text-purple-300 transition-colors cursor-pointer"
-          >
-            {t('landing.footerDemo')}
-          </button>
-          <a href="#features" className="hover:text-purple-300 transition-colors">{t('landing.footerFeatures')}</a>
-          <a href="#pricing" className="hover:text-purple-300 transition-colors">{t('landing.footerPricing')}</a>
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.9, ease: "easeOut" }}
+          className="overflow-hidden rounded-2xl border border-zinc-900 bg-zinc-950"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-zinc-900 text-xs text-zinc-400">
+                  <th className="px-5 py-4 font-medium">{t('landing.compareColFeature')}</th>
+                  <th className="px-4 py-4 text-center font-medium">{t('landing.compareColExcel')}</th>
+                  <th className="px-4 py-4 text-center font-medium">{t('landing.compareColOther')}</th>
+                  <th className="px-4 py-4 text-center font-semibold text-purple-300">{t('landing.compareColFlow')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-900">
+                {[
+                  ['landing.compareRow1', 'partial', 'partial', 'yes'],
+                  ['landing.compareRow2', 'no', 'partial', 'yes'],
+                  ['landing.compareRow3', 'no', 'yes', 'yes'],
+                  ['landing.compareRow4', 'no', 'partial', 'yes'],
+                  ['landing.compareRow5', 'no', 'yes', 'yes'],
+                  ['landing.compareRow6', 'yes', 'no', 'yes'],
+                ].map(([labelKey, excel, other, flow]) => (
+                  <tr key={labelKey} className="text-zinc-300">
+                    <td className="px-5 py-3.5">{t(labelKey)}</td>
+                    <td className="px-4 py-3.5 text-center"><CompareMark value={excel} /></td>
+                    <td className="px-4 py-3.5 text-center"><CompareMark value={other} /></td>
+                    <td className="bg-purple-950/20 px-4 py-3.5 text-center"><CompareMark value={flow} highlight /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* PREGUNTAS FRECUENTES */}
+      <section id="faq" className="py-28 max-w-3xl mx-auto px-6 border-t border-zinc-900">
+        <motion.div 
+          initial={{ opacity: 0, y: 35 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.0, ease: "easeOut" }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-3">{t('landing.faqEyebrow')}</h2>
+          <h3 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+            {t('landing.faqTitle')}
+          </h3>
+        </motion.div>
+
+        <FaqList />
+      </section>
+
+      {/* FOOTER */}
+      <footer id="site-footer" className="border-t border-zinc-900">
+        <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col gap-6">
+          <div className="flex flex-col items-center justify-between gap-4 text-xs text-zinc-500 sm:flex-row">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400">
+                <BarChart3 className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-medium text-zinc-300">FlowMetrics</span>
+              <span>{t('landing.footerBrandNote')}</span>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+              <button 
+                onClick={goToDemo}
+                className="hover:text-purple-300 transition-colors cursor-pointer"
+              >
+                {t('landing.footerDemo')}
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('features')}
+                className="hover:text-purple-300 transition-colors cursor-pointer"
+              >
+                {t('landing.footerFeatures')}
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('pricing')}
+                className="hover:text-purple-300 transition-colors cursor-pointer"
+              >
+                {t('landing.footerPricing')}
+              </button>
+              <Link to="/privacidad" className="hover:text-purple-300 transition-colors">{t('landing.footerLegalPrivacy')}</Link>
+              <Link to="/terminos" className="hover:text-purple-300 transition-colors">{t('landing.footerLegalTerms')}</Link>
+              <Link to="/cookies" className="hover:text-purple-300 transition-colors">{t('landing.footerLegalCookies')}</Link>
+            </div>
+          </div>
+          <p className="text-center text-[11px] text-zinc-600 sm:text-left">
+            {t('landing.footerSimulatedNote')}
+          </p>
         </div>
       </footer>
 
-      {/* MODAL DE "COMENZAR GRATIS" */}
-      <AnimatePresence>
-        {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-zinc-950 border border-purple-900/50 rounded-2xl max-w-md w-full p-6 sm:p-8 relative shadow-2xl shadow-purple-950/40"
-          >
-            <button 
-              onClick={() => setIsModalOpen(false)}
-              aria-label={t('aria.close')}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors p-1 cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            {!modalSubmitted ? (
-              <>
-                <div className="mb-6">
-                  <span className="text-[11px] font-semibold text-purple-400 uppercase tracking-widest">{t('landing.modalEyebrow')}</span>
-                  <h3 className="text-xl font-bold text-white mt-1">{t('landing.modalTitle')}</h3>
-                  <p className="text-xs text-zinc-400 mt-1">
-                    {t('landing.modalDescription')}
-                  </p>
-                </div>
-
-                <form onSubmit={handleModalSubmit} className="space-y-3.5">
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-300 mb-1">{t('landing.modalFullName')}</label>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder={t('landing.modalFullNamePlaceholder')}
-                      value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-purple-700"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-300 mb-1">{t('landing.modalCompany')}</label>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder={t('landing.modalCompanyPlaceholder')}
-                      value={formData.company}
-                      onChange={(e) => setFormData({...formData, company: e.target.value})}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-purple-700"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-300 mb-1">{t('landing.modalEmail')}</label>
-                    <input 
-                      type="email" 
-                      required
-                      placeholder={t('landing.modalEmailPlaceholder')}
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-purple-700"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-300 mb-1">{t('landing.modalPassword')}</label>
-                    <input 
-                      type="password" 
-                      required
-                      placeholder={t('landing.modalPasswordPlaceholder')}
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-purple-700"
-                    />
-                  </div>
-
-                  <motion.button 
-                    whileHover={{ scale: 1.02, boxShadow: "0 0 15px rgba(88, 28, 135, 0.4)" }}
-                    whileTap={{ scale: 0.98 }}
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-purple-950 to-purple-900 hover:from-purple-900 hover:to-purple-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs mt-2 cursor-pointer shadow-lg shadow-purple-950/50 border border-purple-800/40"
-                  >
-                    {t('landing.modalSubmit')}
-                  </motion.button>
-                </form>
-              </>
-            ) : (
-              <div className="py-6 text-center space-y-4">
-                <div className="w-10 h-10 rounded-full bg-purple-950 border border-purple-800 text-purple-300 flex items-center justify-center mx-auto shadow-inner">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <h4 className="text-lg font-bold text-white">{t('landing.modalSubmittedTitle')}</h4>
-                <p className="text-xs text-zinc-300 leading-relaxed px-2">
-                  {t('landing.modalSubmittedDescription')}
-                </p>
-                <div className="pt-2 flex flex-col gap-2.5">
-                  <motion.button 
-                    whileHover={{ scale: 1.02, boxShadow: "0 0 15px rgba(88, 28, 135, 0.4)" }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => navigate('/demo/dashboard')}
-                    className="w-full bg-gradient-to-r from-purple-950 to-purple-900 hover:from-purple-900 hover:to-purple-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-purple-950/50 border border-purple-800/40"
-                  >
-                    {t('landing.modalSubmittedCta')} <ArrowRight className="w-3.5 h-3.5" />
-                  </motion.button>
-                  <button 
-                    onClick={() => setIsModalOpen(false)}
-                    className="w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium py-2 rounded-lg transition-all text-xs cursor-pointer border border-zinc-800"
-                  >
-                    {t('landing.modalClose')}
-                  </button>
-                </div>
-              </div>
-            )}
-
-          </motion.div>
-        </div>
-        )}
-      </AnimatePresence>
+      {/* MODALES SIMULADOS DE CUENTA (registro por pasos y acceso) */}
+      <SignupWizardModal
+        open={signupOpen}
+        onClose={() => setSignupOpen(false)}
+        onEnterDemo={goToDemo}
+      />
+      <LoginModal
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        onEnterDemo={goToDemo}
+        onCreateAccount={() => setSignupOpen(true)}
+      />
 
       {/* TARJETA DE DESARROLLADORA (Andrea Viera Hernández) */}
       <DevCard />

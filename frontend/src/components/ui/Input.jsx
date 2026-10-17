@@ -1,8 +1,16 @@
+import { useId } from 'react';
 import { cn } from '../../lib/cn';
 
-export default function Input({ className, error, ...props }) {
-  return (
+export default function Input({ className, error, label, id, ...props }) {
+  const reactId = useId();
+  const inputId = id ?? reactId;
+  const message = typeof error === 'string' ? error : null;
+
+  const input = (
     <input
+      id={inputId}
+      aria-invalid={error ? true : undefined}
+      aria-describedby={message ? `${inputId}-error` : undefined}
       className={cn(
         'w-full rounded-lg border bg-zinc-950 px-3 py-2 text-sm text-zinc-100',
         'placeholder:text-zinc-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20',
@@ -12,5 +20,23 @@ export default function Input({ className, error, ...props }) {
       )}
       {...props}
     />
+  );
+
+  if (!label && !message) return input;
+
+  return (
+    <div className="flex flex-col gap-1">
+      {label && (
+        <label htmlFor={inputId} className="text-xs font-medium text-zinc-400">
+          {label}
+        </label>
+      )}
+      {input}
+      {message && (
+        <p id={`${inputId}-error`} className="text-xs text-red-400">
+          {message}
+        </p>
+      )}
+    </div>
   );
 }

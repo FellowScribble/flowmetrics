@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 import { ToastContext } from './ToastContext';
 import { cn } from '../../../lib/cn';
@@ -41,30 +42,37 @@ export function ToastProvider({ children }) {
     <ToastContext.Provider value={value}>
       {children}
       <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-full max-w-sm flex-col gap-2">
-        {toasts.map((toast) => {
-          const { icon: Icon, classes, iconClass } = toneStyles[toast.tone] ?? toneStyles.info;
-          return (
-            <div
-              key={toast.id}
-              role="status"
-              className={cn(
-                'pointer-events-auto flex items-start gap-2 rounded-lg border bg-zinc-900 px-4 py-3 shadow-lg',
-                classes,
-              )}
-            >
-              <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', iconClass)} />
-              <p className="flex-1 text-sm text-zinc-200">{toast.message}</p>
-              <button
-                type="button"
-                onClick={() => remove(toast.id)}
-                aria-label={t('aria.closeNotification')}
-                className="text-zinc-500 transition-colors hover:text-zinc-300"
+        <AnimatePresence initial={false}>
+          {toasts.map((toast) => {
+            const { icon: Icon, classes, iconClass } = toneStyles[toast.tone] ?? toneStyles.info;
+            return (
+              <motion.div
+                key={toast.id}
+                role="status"
+                layout
+                initial={{ opacity: 0, x: 64, scale: 0.96 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: 64, scale: 0.96 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                className={cn(
+                  'pointer-events-auto flex items-start gap-2 rounded-lg border bg-zinc-900 px-4 py-3 shadow-lg',
+                  classes,
+                )}
               >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          );
-        })}
+                <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', iconClass)} />
+                <p className="flex-1 text-sm text-zinc-200">{toast.message}</p>
+                <button
+                  type="button"
+                  onClick={() => remove(toast.id)}
+                  aria-label={t('aria.closeNotification')}
+                  className="text-zinc-500 transition-colors hover:text-zinc-300"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );

@@ -1,4 +1,5 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   LineChart,
   Line,
@@ -8,9 +9,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { AlertTriangle, TrendingUp, Users, Wallet } from 'lucide-react';
+import { AlertTriangle, TrendingUp, Users, Wallet, RefreshCw } from 'lucide-react';
 import { getSummary, getSalesByMonth } from '../api/reports';
 import { getActivity } from '../api/activity';
+import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
@@ -28,6 +30,29 @@ const tooltipStyle = {
 };
 const tooltipLabelStyle = { color: '#a1a1aa' };
 const tooltipItemStyle = { color: '#f4f4f5' };
+const entranceEase = [0.22, 1, 0.36, 1];
+
+// Cuenta ascendente hasta el valor final. Respeta «reducir movimiento».
+function useCountUp(target, duration = 700) {
+  const reduceMotion = useReducedMotion();
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (reduceMotion) return undefined;
+    let raf;
+    const start = performance.now();
+    const tick = (now) => {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(target * eased);
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration, reduceMotion]);
+
+  return reduceMotion ? target : display;
+}
 
 function Dashboard() {
   const { t } = useLanguage();
@@ -42,42 +67,67 @@ function Dashboard() {
     return { summary, monthlySales, activity };
   }, []);
 
-  const { data, loading, error, retry } = useAsyncData(loadDashboard);
+  const { data, loading, error, hasData, refresh, refreshError, retry } =
+    useAsyncData(loadDashboard);
 
   if (loading) return <DashboardSkeleton />;
-  if (error) return <ErrorState onRetry={retry} />;
+  if (error && !hasData) return <ErrorState onRetry={retry} />;
 
   const { summary, monthlySales, activity } = data;
 
   return (
     <div>
-      <PageHeader title={t('nav.dashboard')} description={t('dashboard.description')} />
+      <PageHeader
+        title={t('nav.dashboard')}
+        description={t('dashboard.description')}
+        actions={
+          <Button variant="secondary" onClick={refresh}>
+            <RefreshCw className="h-4 w-4" />
+            {t('common.refresh')}
+          </Button>
+        }
+      />
+
+      {refreshError && (
+        <ErrorState variant="inline" className="mb-6" onRetry={refresh} />
+      )}
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           icon={Wallet}
           label={t('dashboard.kpiTotalRevenue')}
-          value={currency(summary.totalRevenue)}
+          value={summary.totalRevenue}
+          format={currency}
+          index={0}
         />
         <KpiCard
           icon={TrendingUp}
           label={t('dashboard.kpiRevenueThisMonth')}
-          value={currency(summary.revenueThisMonth)}
+          value={summary.revenueThisMonth}
+          format={currency}
+          index={1}
         />
         <KpiCard
           icon={Users}
           label={t('dashboard.kpiActiveCustomers')}
           value={summary.activeCustomers}
+          index={2}
         />
         <KpiCard
           icon={AlertTriangle}
           label={t('dashboard.kpiLowStock')}
           value={summary.lowStockProducts}
           tone={summary.lowStockProducts > 0 ? 'warning' : 'default'}
+          index={3}
         />
       </div>
 
-      <Card className="mb-8 p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.3, ease: entranceEase }}
+      >
+        <Card className="mb-8 p-5">
         <h2 className="mb-4 text-lg font-semibold text-zinc-100">
           {t('dashboard.salesByMonth')}
         </h2>
@@ -112,9 +162,15 @@ function Dashboard() {
             </LineChart>
           </ResponsiveContainer>
         )}
-      </Card>
+        </Card>
+      </motion.div>
 
-      <Card className="p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.38, ease: entranceEase }}
+      >
+        <Card className="p-5">
         <h2 className="mb-4 text-lg font-semibold text-zinc-100">
           {t('dashboard.recentActivity')}
         </h2>
@@ -136,22 +192,35 @@ function Dashboard() {
             ))}
           </ul>
         )}
-      </Card>
+        </Card>
+      </motion.div>
     </div>
   );
 }
 
-function KpiCard({ icon: Icon, label, value, tone = 'default' }) {
+function KpiCard({ icon: Icon, label, value, format, tone = 'default', index = 0 }) {
+  const reduceMotion = useReducedMotion();
+  const display = useCountUp(value);
+  const displayText = format
+    ? format(display)
+    : Math.round(display).toLocaleString('es-ES');
+
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-2 text-zinc-400">
-        <Icon
-          className={`h-4 w-4 ${tone === 'warning' ? 'text-amber-500' : 'text-brand-500'}`}
-        />
-        <span className="text-sm">{label}</span>
-      </div>
-      <div className="mt-2 text-2xl font-bold text-zinc-100">{value}</div>
-    </Card>
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: 0.06 * index, ease: entranceEase }}
+    >
+      <Card className="p-4">
+        <div className="flex items-center gap-2 text-zinc-400">
+          <Icon
+            className={`h-4 w-4 ${tone === 'warning' ? 'text-amber-500' : 'text-brand-500'}`}
+          />
+          <span className="text-sm">{label}</span>
+        </div>
+        <div className="mt-2 text-2xl font-bold text-zinc-100">{displayText}</div>
+      </Card>
+    </motion.div>
   );
 }
 
