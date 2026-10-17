@@ -36,25 +36,25 @@ export default function LegalPage({ type }) {
   const section = SECTIONS[type] ?? SECTIONS.privacy;
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <header className="border-b border-zinc-900">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-5">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 transition-colors hover:text-purple-300"
+            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 transition-colors hover:text-brand-300"
           >
             <ArrowLeft className="h-4 w-4" />
             {t('legal.backHome')}
           </Link>
           <span className="inline-flex items-center gap-2 text-sm font-semibold text-white">
-            <Scale className="h-4 w-4 text-purple-400" />
+            <Scale className="h-4 w-4 text-brand-400" />
             FlowMetrics
           </span>
         </div>
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
-        <p className="text-xs font-semibold uppercase tracking-widest text-purple-400">
+        <p className="text-xs font-semibold uppercase tracking-widest text-brand-400">
           {t('legal.updated')}
         </p>
         <h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -71,7 +71,7 @@ export default function LegalPage({ type }) {
           ))}
         </div>
 
-        <p className="mt-12 rounded-xl border border-zinc-900 bg-zinc-950 px-4 py-3 text-xs text-zinc-500">
+        <p className="mt-12 rounded-xl border border-zinc-900 bg-zinc-950 px-4 py-3 text-xs text-zinc-400">
           {t('legal.simulatedNote')}
         </p>
       </main>

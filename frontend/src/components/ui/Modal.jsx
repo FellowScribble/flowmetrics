@@ -62,7 +62,7 @@ export default function Modal({ open, onClose, title, children, footer, maxWidth
                 type="button"
                 onClick={onClose}
                 aria-label={t('aria.close')}
-                className="rounded-md p-1 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+                className="rounded-md p-1 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
               >
                 <X className="h-4 w-4" />
               </button>

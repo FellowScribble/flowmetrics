@@ -65,7 +65,7 @@ export function ToastProvider({ children }) {
                   type="button"
                   onClick={() => remove(toast.id)}
                   aria-label={t('aria.closeNotification')}
-                  className="text-zinc-500 transition-colors hover:text-zinc-300"
+                  className="text-zinc-400 transition-colors hover:text-zinc-300"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>

@@ -74,7 +74,7 @@ function Sidebar({ companyName, open = false, onClose }) {
             <div className="text-xl font-bold text-brand-400 transition-colors group-hover:text-brand-300">
               FlowMetrics
             </div>
-            {companyName && <div className="text-xs text-zinc-500">{companyName}</div>}
+            {companyName && <div className="text-xs text-zinc-400">{companyName}</div>}
           </Link>
           <div className="hidden lg:flex">
             <LanguageToggle />
@@ -83,7 +83,7 @@ function Sidebar({ companyName, open = false, onClose }) {
             type="button"
             onClick={onClose}
             aria-label={t('aria.closeMenu')}
-            className="rounded-md p-1 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200 lg:hidden"
+            className="rounded-md p-1 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 lg:hidden"
           >
             <X className="h-4 w-4" />
           </button>
@@ -213,12 +213,12 @@ function AccountMenu({ onNavigate }) {
           <span className="block truncate text-sm font-medium text-zinc-100">
             {t('account.name')}
           </span>
-          <span className="block truncate text-[11px] text-zinc-500">{t('account.role')}</span>
+          <span className="block truncate text-[11px] text-zinc-400">{t('account.role')}</span>
         </span>
         <ChevronUp
           aria-hidden="true"
           className={cn(
-            'h-4 w-4 shrink-0 text-zinc-500 transition-transform',
+            'h-4 w-4 shrink-0 text-zinc-400 transition-transform',
             !open && 'rotate-180',
           )}
         />

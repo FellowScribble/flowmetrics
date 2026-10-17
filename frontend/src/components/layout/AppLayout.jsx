@@ -42,7 +42,7 @@ function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-black text-zinc-100">
+    <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
       <Sidebar
         companyName={session?.companyName}
         open={sidebarOpen}

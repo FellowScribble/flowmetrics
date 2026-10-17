@@ -54,7 +54,7 @@ export default function ConnectingScreen({ elapsedMs, deadlineMs }) {
             />
           </div>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px]">
-            <span className="text-zinc-500">{t('connection.progressNote')}</span>
+            <span className="text-zinc-400">{t('connection.progressNote')}</span>
             <span
               aria-hidden="true"
               className="shrink-0 font-mono text-zinc-400"

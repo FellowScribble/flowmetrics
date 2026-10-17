@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { AlertTriangle, TrendingUp, Users, Wallet, RefreshCw } from 'lucide-react';
+import { AlertTriangle, TrendingUp, TrendingDown, Users, Wallet, RefreshCw } from 'lucide-react';
 import { getSummary, getSalesByMonth } from '../api/reports';
 import { getActivity } from '../api/activity';
 import Button from '../components/ui/Button';
@@ -20,16 +20,16 @@ import ErrorState from '../components/ui/ErrorState';
 import PageHeader from '../components/ui/PageHeader';
 import { useAsyncData } from '../lib/useAsyncData';
 import { useFormat } from '../lib/useFormat';
+import {
+  chartColor,
+  gridStroke,
+  axisTick,
+  tooltipStyle,
+  tooltipLabelStyle,
+  tooltipItemStyle,
+} from '../lib/chartTheme';
 import { useLanguage } from '../i18n/useLanguage';
 
-const chartColor = '#a855f7';
-const tooltipStyle = {
-  backgroundColor: '#18181b',
-  border: '1px solid #27272a',
-  borderRadius: 8,
-};
-const tooltipLabelStyle = { color: '#a1a1aa' };
-const tooltipItemStyle = { color: '#f4f4f5' };
 const entranceEase = [0.22, 1, 0.36, 1];
 
 // Cuenta ascendente hasta el valor final. Respeta «reducir movimiento».
@@ -57,6 +57,7 @@ function useCountUp(target, duration = 700) {
 function Dashboard() {
   const { t } = useLanguage();
   const { currency, dateTime } = useFormat();
+  const reduceMotion = useReducedMotion();
 
   const loadDashboard = useCallback(async () => {
     const [summary, monthlySales, activity] = await Promise.all([
@@ -74,6 +75,16 @@ function Dashboard() {
   if (error && !hasData) return <ErrorState onRetry={retry} />;
 
   const { summary, monthlySales, activity } = data;
+
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const lastMonth = monthlySales[monthlySales.length - 1];
+  const previousMonth = monthlySales[monthlySales.length - 2];
+  const revenueDelta =
+    lastMonth?.month === currentMonth && Number(previousMonth?.total) > 0
+      ? ((Number(lastMonth.total) - Number(previousMonth.total)) /
+          Number(previousMonth.total)) *
+        100
+      : null;
 
   return (
     <div>
@@ -105,6 +116,8 @@ function Dashboard() {
           label={t('dashboard.kpiRevenueThisMonth')}
           value={summary.revenueThisMonth}
           format={currency}
+          delta={revenueDelta}
+          deltaCaption={t('dashboard.vsPreviousMonth')}
           index={1}
         />
         <KpiCard
@@ -123,7 +136,7 @@ function Dashboard() {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 14 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.3, ease: entranceEase }}
       >
@@ -138,11 +151,17 @@ function Dashboard() {
           />
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlySales}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#a1a1aa' }} />
+            <AreaChart data={monthlySales}>
+              <defs>
+                <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={chartColor} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={chartColor} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+              <XAxis dataKey="month" tick={axisTick} />
               <YAxis
-                tick={{ fontSize: 12, fill: '#a1a1aa' }}
+                tick={axisTick}
                 tickFormatter={(value) => `${value} €`}
               />
               <Tooltip
@@ -151,22 +170,23 @@ function Dashboard() {
                 labelStyle={tooltipLabelStyle}
                 itemStyle={tooltipItemStyle}
               />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="total"
                 stroke={chartColor}
                 strokeWidth={2}
+                fill="url(#salesGradient)"
                 dot={{ r: 3, fill: chartColor }}
                 activeDot={{ r: 5 }}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         )}
         </Card>
       </motion.div>
 
       <motion.div
-        initial={{ opacity: 0, y: 14 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.38, ease: entranceEase }}
       >
@@ -198,12 +218,22 @@ function Dashboard() {
   );
 }
 
-function KpiCard({ icon: Icon, label, value, format, tone = 'default', index = 0 }) {
+function KpiCard({
+  icon: Icon,
+  label,
+  value,
+  format,
+  tone = 'default',
+  delta = null,
+  deltaCaption,
+  index = 0,
+}) {
   const reduceMotion = useReducedMotion();
   const display = useCountUp(value);
   const displayText = format
     ? format(display)
     : Math.round(display).toLocaleString('es-ES');
+  const isPositive = delta !== null && delta >= 0;
 
   return (
     <motion.div
@@ -219,6 +249,19 @@ function KpiCard({ icon: Icon, label, value, format, tone = 'default', index = 0
           <span className="text-sm">{label}</span>
         </div>
         <div className="mt-2 text-2xl font-bold text-zinc-100">{displayText}</div>
+        {delta !== null && (
+          <div className="mt-1 flex items-center gap-1 text-xs">
+            {isPositive ? (
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
+            ) : (
+              <TrendingDown className="h-3.5 w-3.5 text-red-400" />
+            )}
+            <span className={isPositive ? 'font-medium text-emerald-400' : 'font-medium text-red-400'}>
+              {`${isPositive ? '+' : ''}${delta.toFixed(1)}%`}
+            </span>
+            {deltaCaption && <span className="text-zinc-400">{deltaCaption}</span>}
+          </div>
+        )}
       </Card>
     </motion.div>
   );

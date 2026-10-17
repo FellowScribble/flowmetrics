@@ -7,7 +7,7 @@ import { useLanguage } from '../../i18n/useLanguage';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const inputClass =
-  'w-full rounded-lg border border-zinc-800 bg-zinc-900 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-zinc-600 transition-colors focus:border-brand-600 focus:outline-none';
+  'w-full rounded-lg border border-zinc-800 bg-zinc-900 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-zinc-500 transition-colors focus:border-brand-600 focus:outline-none';
 
 export default function LoginModal({ open, onClose, onEnterDemo, onCreateAccount }) {
   const { t } = useLanguage();
@@ -100,7 +100,7 @@ export default function LoginModal({ open, onClose, onEnterDemo, onCreateAccount
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ duration: reduceMotion ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-purple-900/50 bg-zinc-950 shadow-2xl shadow-purple-950/40"
+            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-brand-900/50 bg-zinc-950 shadow-2xl shadow-brand-950/40"
           >
             <button
               type="button"
@@ -160,7 +160,7 @@ export default function LoginModal({ open, onClose, onEnterDemo, onCreateAccount
                       {t('landing.modalEmail')}
                     </span>
                     <span className="relative block">
-                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
                       <input
                         type="email"
                         autoFocus
@@ -174,7 +174,7 @@ export default function LoginModal({ open, onClose, onEnterDemo, onCreateAccount
                   </div>
                   <button
                     type="submit"
-                    className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-purple-800/40 bg-gradient-to-r from-[#7e22ce] to-[#581c87] px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-purple-950/50 transition-colors hover:from-[#8b2fd4] hover:to-[#6b21a8]"
+                    className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-brand-800/40 bg-gradient-to-r from-brand-600 to-brand-800 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand-950/50 transition-colors hover:from-brand-500 hover:to-brand-700"
                   >
                     {t('landing.loginForgotSubmit')}
                     <ArrowRight className="h-4 w-4" />
@@ -207,7 +207,7 @@ export default function LoginModal({ open, onClose, onEnterDemo, onCreateAccount
                         {t('landing.modalEmail')}
                       </span>
                       <span className="relative block">
-                        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
                         <input
                           type="email"
                           autoFocus
@@ -223,7 +223,7 @@ export default function LoginModal({ open, onClose, onEnterDemo, onCreateAccount
                         {t('landing.modalPassword')}
                       </span>
                       <span className="relative block">
-                        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
                         <input
                           type="password"
                           value={password}
@@ -253,7 +253,7 @@ export default function LoginModal({ open, onClose, onEnterDemo, onCreateAccount
                   <button
                     type="submit"
                     disabled={loading}
-                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-purple-800/40 bg-gradient-to-r from-[#7e22ce] to-[#581c87] px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-purple-950/50 transition-colors hover:from-[#8b2fd4] hover:to-[#6b21a8] disabled:opacity-70"
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-brand-800/40 bg-gradient-to-r from-brand-600 to-brand-800 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand-950/50 transition-colors hover:from-brand-500 hover:to-brand-700 disabled:opacity-70"
                   >
                     {loading ? (
                       <>
@@ -282,8 +282,8 @@ export default function LoginModal({ open, onClose, onEnterDemo, onCreateAccount
               )}
             </AnimatePresence>
 
-            <p className="flex items-center justify-center gap-1.5 border-t border-zinc-900 bg-zinc-950/80 py-2.5 text-[11px] text-zinc-500">
-              <ShieldCheck className={cn('h-3 w-3 text-purple-400')} />
+            <p className="flex items-center justify-center gap-1.5 border-t border-zinc-900 bg-zinc-950/80 py-2.5 text-[11px] text-zinc-400">
+              <ShieldCheck className={cn('h-3 w-3 text-brand-400')} />
               {t('landing.loginSimulatedBadge')}
             </p>
           </motion.div>

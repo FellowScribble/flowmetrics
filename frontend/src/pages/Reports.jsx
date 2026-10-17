@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import {
-  BarChart,
-  Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -18,16 +18,15 @@ import ErrorState from '../components/ui/ErrorState';
 import PageHeader from '../components/ui/PageHeader';
 import { useAsyncData } from '../lib/useAsyncData';
 import { useFormat } from '../lib/useFormat';
+import {
+  chartColor,
+  gridStroke,
+  axisTick,
+  tooltipStyle,
+  tooltipLabelStyle,
+  tooltipItemStyle,
+} from '../lib/chartTheme';
 import { useLanguage } from '../i18n/useLanguage';
-
-const chartColor = '#a855f7';
-const tooltipStyle = {
-  backgroundColor: '#18181b',
-  border: '1px solid #27272a',
-  borderRadius: 8,
-};
-const tooltipLabelStyle = { color: '#a1a1aa' };
-const tooltipItemStyle = { color: '#f4f4f5' };
 
 function Reports() {
   const { t } = useLanguage();
@@ -86,11 +85,17 @@ function Reports() {
           />
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlySales}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#a1a1aa' }} />
+            <AreaChart data={monthlySales}>
+              <defs>
+                <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={chartColor} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={chartColor} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+              <XAxis dataKey="month" tick={axisTick} />
               <YAxis
-                tick={{ fontSize: 12, fill: '#a1a1aa' }}
+                tick={axisTick}
                 tickFormatter={(value) => `${value} €`}
               />
               <Tooltip
@@ -99,8 +104,16 @@ function Reports() {
                 labelStyle={tooltipLabelStyle}
                 itemStyle={tooltipItemStyle}
               />
-              <Bar dataKey="total" fill={chartColor} radius={[4, 4, 0, 0]} />
-            </BarChart>
+              <Area
+                type="monotone"
+                dataKey="total"
+                stroke={chartColor}
+                strokeWidth={2}
+                fill="url(#salesGradient)"
+                dot={{ r: 3, fill: chartColor }}
+                activeDot={{ r: 5 }}
+              />
+            </AreaChart>
           </ResponsiveContainer>
         )}
       </Card>

@@ -195,14 +195,14 @@ function Settings() {
                         </span>
                         <span className="text-sm text-zinc-400">
                           {t('settings.subscriptionPrice')}
-                          <span className="text-xs text-zinc-500">
+                          <span className="text-xs text-zinc-400">
                             {' '}
                             {t('settings.subscriptionCycle')}
                           </span>
                         </span>
                       </div>
                     </div>
-                    <span className="rounded-full border border-purple-900/50 bg-purple-950/50 px-3 py-1 text-[11px] font-medium text-purple-300">
+                    <span className="rounded-full border border-brand-900/50 bg-brand-950/50 px-3 py-1 text-[11px] font-medium text-brand-300">
                       {t('settings.subscriptionPlanBadge')}
                     </span>
                   </div>
@@ -235,7 +235,7 @@ function Settings() {
                         <div key={item.labelKey}>
                           <div className="mb-1.5 flex items-center justify-between text-sm">
                             <span className="text-zinc-300">{t(item.labelKey)}</span>
-                            <span className="text-zinc-500">
+                            <span className="text-zinc-400">
                               {item.used} {t('settings.subscriptionUsageOf', { limit: item.limit })}
                             </span>
                           </div>
@@ -252,8 +252,8 @@ function Settings() {
                 </Card>
               </div>
 
-              <Card className="flex h-fit flex-col bg-gradient-to-b from-[#24113c] via-zinc-900 to-zinc-950 p-5">
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-950/60 px-2.5 py-0.5 text-[11px] font-medium text-purple-200">
+              <Card className="flex h-fit flex-col bg-gradient-to-b from-brand-950 via-zinc-900 to-zinc-950 p-5">
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-brand-500/30 bg-brand-950/60 px-2.5 py-0.5 text-[11px] font-medium text-brand-200">
                   <Sparkles className="h-3 w-3" />
                   {t('settings.simulationBadge')}
                 </span>
@@ -303,7 +303,7 @@ function Settings() {
               ))}
             </ul>
             {upgrading && (
-              <p className="flex items-center gap-2 text-xs text-zinc-500">
+              <p className="flex items-center gap-2 text-xs text-zinc-400">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 {t('settings.upgradeProcessing')}
               </p>
@@ -320,7 +320,7 @@ function InfoCard({ label, value, note }) {
     <div className="rounded-lg border border-zinc-800 p-4">
       <div className="text-sm text-zinc-400">{label}</div>
       <div className="mt-0.5 break-all text-lg font-semibold text-zinc-100">{value}</div>
-      {note && <div className="mt-1 text-[11px] text-zinc-500">{note}</div>}
+      {note && <div className="mt-1 text-[11px] text-zinc-400">{note}</div>}
     </div>
   );
 }
