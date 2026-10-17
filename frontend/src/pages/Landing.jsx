@@ -288,7 +288,7 @@ function DevCard() {
       <motion.div 
         animate={{ width: isCardExpanded ? 280 : 200 }}
         transition={{ duration: reduceMotion ? 0 : 0.3, ease: "easeOut" }}
-        className="max-w-[calc(100vw-1.5rem)] bg-zinc-900/95 border border-purple-950/60 rounded-xl p-2 sm:p-3 shadow-2xl shadow-purple-950/30 backdrop-blur-md overflow-hidden"
+        className="max-w-[calc(100vw-1.5rem)] bg-zinc-900/95 border border-brand-950/60 rounded-xl p-2 sm:p-3 shadow-2xl shadow-brand-950/30 backdrop-blur-md overflow-hidden"
       >
         <button
           type="button"
@@ -298,17 +298,17 @@ function DevCard() {
           aria-label={`Andrea Viera Hernández — ${t('landing.devCardRole')}`}
           className="flex w-full cursor-pointer items-center gap-3 rounded-lg bg-transparent text-left"
         >
-          <div className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800 flex items-center justify-center text-xs font-semibold text-purple-300 shrink-0 shadow-inner">
+          <div className="w-9 h-9 rounded-full bg-brand-950 border border-brand-800 flex items-center justify-center text-xs font-semibold text-brand-300 shrink-0 shadow-inner">
             AV
           </div>
           <div className="min-w-0 flex-1 overflow-hidden whitespace-nowrap">
             <div className="text-xs font-semibold text-zinc-200 truncate">Andrea Viera Hernández</div>
-            <div className="text-[11px] text-purple-400 truncate">{t('landing.devCardRole')}</div>
+            <div className="text-[11px] text-brand-400 truncate">{t('landing.devCardRole')}</div>
           </div>
           <ChevronDown
             aria-hidden="true"
             className={cn(
-              'w-4 h-4 shrink-0 text-purple-400 transition-transform',
+              'w-4 h-4 shrink-0 text-brand-400 transition-transform',
               isCardExpanded && 'rotate-180',
             )}
           />
@@ -330,17 +330,17 @@ function DevCard() {
                   onClick={copyEmail}
                   title={t('landing.devCardEmailCopyHint')}
                   aria-label={t('landing.devCardEmailCopyHint')}
-                  className="flex w-full items-center gap-2 text-left hover:text-purple-300 transition-colors truncate"
+                  className="flex w-full items-center gap-2 text-left hover:text-brand-300 transition-colors truncate"
                 >
-                  <Mail className="w-3.5 h-3.5 shrink-0 text-purple-400" />
+                  <Mail className="w-3.5 h-3.5 shrink-0 text-brand-400" />
                   <span className="truncate">{DEV_EMAIL}</span>
                 </button>
-                <a href="https://www.linkedin.com/in/andrea-viera-hernandez-0449652ba" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-purple-300 transition-colors">
-                  <ExternalLink className="w-3.5 h-3.5 shrink-0 text-purple-400" />
+                <a href="https://www.linkedin.com/in/andrea-viera-hernandez-0449652ba" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-brand-300 transition-colors">
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0 text-brand-400" />
                   <span>{t('landing.devCardLinkedin')}</span>
                 </a>
-                <a href="https://github.com/FellowScribble?tab=repositories" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-purple-300 transition-colors">
-                  <ExternalLink className="w-3.5 h-3.5 shrink-0 text-purple-400" />
+                <a href="https://github.com/FellowScribble?tab=repositories" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-brand-300 transition-colors">
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0 text-brand-400" />
                   <span>{t('landing.devCardGithub')}</span>
                 </a>
               </motion.div>
@@ -415,7 +415,7 @@ function HeroTitle() {
     >
       <SplitLetters text={t('landing.heroTitle1')} hidden={!reduceMotion} />
       <br />
-      <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 via-purple-300 to-zinc-400 font-normal">
+      <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 via-brand-300 to-zinc-400 font-normal">
         <SplitLetters text={t('landing.heroTitle2')} hidden={!reduceMotion} />
       </span>
     </h1>
@@ -510,23 +510,23 @@ function MockupKpis() {
   return (
     <div ref={gridRef} className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
       <div className="bg-zinc-950 p-2.5 sm:p-3 rounded-lg border border-zinc-800/60 min-w-0">
-        <div className="text-[10px] sm:text-[11px] text-zinc-500 truncate">{t('landing.mockupRevenue')}</div>
+        <div className="text-[10px] sm:text-[11px] text-zinc-400 truncate">{t('landing.mockupRevenue')}</div>
         <div className="text-sm sm:text-lg font-semibold text-white mt-1 whitespace-nowrap">
           <span ref={revenueRef} />
         </div>
-        <div className="text-[10px] text-purple-400 mt-1 flex items-center gap-1 whitespace-nowrap">
-          <TrendingUp className="w-3 h-3 text-purple-400 shrink-0" /> {t('landing.mockupRevenueChange')}
+        <div className="text-[10px] text-brand-400 mt-1 flex items-center gap-1 whitespace-nowrap">
+          <TrendingUp className="w-3 h-3 text-brand-400 shrink-0" /> {t('landing.mockupRevenueChange')}
         </div>
       </div>
       <div className="bg-zinc-950 p-2.5 sm:p-3 rounded-lg border border-zinc-800/60 min-w-0">
-        <div className="text-[10px] sm:text-[11px] text-zinc-500 truncate">{t('landing.mockupSales')}</div>
+        <div className="text-[10px] sm:text-[11px] text-zinc-400 truncate">{t('landing.mockupSales')}</div>
         <div className="text-sm sm:text-lg font-semibold text-white mt-1 whitespace-nowrap">
           <span ref={salesRef} />
         </div>
         <div className="text-[10px] text-zinc-400 mt-1 truncate">{t('landing.mockupSalesAvg')}</div>
       </div>
       <div className="bg-zinc-950 p-2.5 sm:p-3 rounded-lg border border-zinc-800/60 min-w-0">
-        <div className="text-[10px] sm:text-[11px] text-zinc-500 truncate">{t('landing.mockupCustomers')}</div>
+        <div className="text-[10px] sm:text-[11px] text-zinc-400 truncate">{t('landing.mockupCustomers')}</div>
         <div className="text-sm sm:text-lg font-semibold text-white mt-1 whitespace-nowrap">
           <span ref={customersRef} />
         </div>
@@ -590,7 +590,7 @@ function MockupChart() {
           style={{ strokeDasharray: 1, strokeDashoffset: reduceMotion ? 0 : 1 }}
         />
       </svg>
-      <span className="absolute bottom-2 left-3 text-[10px] text-zinc-600 font-mono">
+      <span className="absolute bottom-2 left-3 text-[10px] text-zinc-500 font-mono">
         {t('landing.mockupChart')}
       </span>
     </div>
@@ -617,9 +617,9 @@ function MockupLiveChip() {
   return (
     <span
       ref={chipRef}
-      className="text-[10px] text-purple-300 bg-purple-950/50 px-2 py-0.5 rounded border border-purple-900/40 flex items-center gap-1.5"
+      className="text-[10px] text-brand-300 bg-brand-950/50 px-2 py-0.5 rounded border border-brand-900/40 flex items-center gap-1.5"
     >
-      <Activity className="w-3 h-3 text-purple-400" /> {t('landing.mockupLive')}
+      <Activity className="w-3 h-3 text-brand-400" /> {t('landing.mockupLive')}
     </span>
   );
 }
@@ -643,7 +643,7 @@ function MockupCatalogProgress() {
       <div
         ref={barRef}
         style={{ width: reduceMotion ? '75%' : '0%' }}
-        className="bg-gradient-to-r from-purple-900 to-purple-500 h-full rounded-full"
+        className="bg-gradient-to-r from-brand-900 to-brand-500 h-full rounded-full"
       />
     </div>
   );
@@ -678,7 +678,7 @@ function MockupTransactions() {
         className="flex justify-between items-center p-2 rounded bg-zinc-900 border border-zinc-800/60"
       >
         <span className="text-zinc-300">{t('landing.mockupInvoice1')}</span>
-        <span className="text-purple-300 font-mono">+340,00 €</span>
+        <span className="text-brand-300 font-mono">+340,00 €</span>
       </div>
       <div
         data-tx-row="true"
@@ -686,7 +686,7 @@ function MockupTransactions() {
         className="flex justify-between items-center p-2 rounded bg-zinc-900 border border-zinc-800/60"
       >
         <span className="text-zinc-300">{t('landing.mockupInvoice2')}</span>
-        <span className="text-purple-300 font-mono">+125,50 €</span>
+        <span className="text-brand-300 font-mono">+125,50 €</span>
       </div>
     </div>
   );
@@ -705,7 +705,7 @@ function CompareMark({ value, highlight = false }) {
   if (value === 'no') {
     return (
       <span className="inline-flex items-center justify-center" title={t('landing.compareNo')}>
-        <XIcon className="h-4 w-4 text-zinc-600" />
+        <XIcon className="h-4 w-4 text-zinc-500" />
       </span>
     );
   }
@@ -732,7 +732,7 @@ function FaqList() {
             key={item}
             className={cn(
               'overflow-hidden rounded-xl border bg-zinc-950 transition-colors',
-              isOpen ? 'border-purple-900/60' : 'border-zinc-900',
+              isOpen ? 'border-brand-900/60' : 'border-zinc-900',
             )}
           >
             <button
@@ -747,7 +747,7 @@ function FaqList() {
               <ChevronDown
                 aria-hidden="true"
                 className={cn(
-                  'h-4 w-4 shrink-0 text-purple-400 transition-transform',
+                  'h-4 w-4 shrink-0 text-brand-400 transition-transform',
                   isOpen && 'rotate-180',
                 )}
               />
@@ -836,7 +836,7 @@ export default function Landing() {
   const showHeader = !canHover || !scrolled || pointerNearTop;
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 selection:bg-purple-950 selection:text-white font-sans antialiased overflow-x-clip">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans antialiased overflow-x-clip">
       
       {/* AVISO + NAVBAR: visibles arriba del todo; al bajar desaparecen (fade down)
           y reaparecen al acercar el ratón a la parte superior de la pantalla */}
@@ -846,14 +846,14 @@ export default function Landing() {
           animate={{ y: showHeader ? 0 : '-100%', opacity: showHeader ? 1 : 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.3, ease: 'easeInOut' }}
         >
-        <div className="relative z-10 bg-black border-b border-purple-950/40 px-4 py-2.5 text-xs text-zinc-400 text-center font-medium flex items-center justify-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+        <div className="relative z-10 bg-zinc-950 border-b border-brand-950/40 px-4 py-2.5 text-xs text-zinc-400 text-center font-medium flex items-center justify-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-brand-500 shrink-0" />
           <span>
             <strong className="text-zinc-200">{t('landing.noticeStrong')}</strong> {t('landing.noticeText')}
           </span>
         </div>
 
-        <header className="bg-black/90 backdrop-blur-md">
+        <header className="bg-zinc-950/90 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-3 border-b border-zinc-900">
             <button
               type="button"
@@ -861,10 +861,10 @@ export default function Landing() {
               aria-label={t('aria.backHome')}
               className="flex items-center gap-2.5 cursor-pointer group shrink-0"
             >
-              <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center shadow-inner shadow-purple-950/20 transition-colors group-hover:border-purple-800/60">
-                <BarChart3 className="w-4 h-4 text-purple-400" />
+              <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-brand-950/60 flex items-center justify-center shadow-inner shadow-brand-950/20 transition-colors group-hover:border-brand-800/60">
+                <BarChart3 className="w-4 h-4 text-brand-400" />
               </div>
-              <span className="hidden sm:inline text-lg font-semibold tracking-tight text-white transition-colors group-hover:text-purple-200">
+              <span className="hidden sm:inline text-lg font-semibold tracking-tight text-white transition-colors group-hover:text-brand-200">
                 FlowMetrics
               </span>
             </button>
@@ -874,21 +874,21 @@ export default function Landing() {
                 <button
                   type="button"
                   onClick={() => scrollToSection('features')}
-                  className="hover:text-purple-300 transition-colors cursor-pointer"
+                  className="hover:text-brand-300 transition-colors cursor-pointer"
                 >
                   {t('landing.navFeatures')}
                 </button>
                 <button
                   type="button"
                   onClick={() => scrollToSection('pricing')}
-                  className="hover:text-purple-300 transition-colors cursor-pointer"
+                  className="hover:text-brand-300 transition-colors cursor-pointer"
                 >
                   {t('landing.navPricing')}
                 </button>
                 <button
                   type="button"
                   onClick={() => scrollToSection('testimonials')}
-                  className="hover:text-purple-300 transition-colors cursor-pointer"
+                  className="hover:text-brand-300 transition-colors cursor-pointer"
                 >
                   {t('landing.navTestimonials')}
                 </button>
@@ -896,22 +896,22 @@ export default function Landing() {
 
               <button 
                 onClick={() => setLoginOpen(true)}
-                className="hidden lg:inline-flex text-sm font-medium text-zinc-400 transition-colors hover:text-purple-300 cursor-pointer"
+                className="hidden lg:inline-flex text-sm font-medium text-zinc-400 transition-colors hover:text-brand-300 cursor-pointer"
               >
                 {t('landing.navLogin')}
               </button>
               <button 
                 onClick={() => setSignupOpen(true)}
-                className="hidden lg:inline-flex text-sm font-medium text-zinc-400 transition-colors hover:text-purple-300 cursor-pointer"
+                className="hidden lg:inline-flex text-sm font-medium text-zinc-400 transition-colors hover:text-brand-300 cursor-pointer"
               >
                 {t('landing.navStartFree')}
               </button>
               <motion.button 
-                whileHover={{ scale: 1.05, boxShadow: "0 0 22px rgba(139, 47, 212, 0.55)" }}
+                whileHover={{ scale: 1.05, boxShadow: "0 0 22px rgba(147, 51, 234, 0.55)" }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 onClick={() => navigate('/demo/dashboard')}
-                className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-[#7e22ce] to-[#581c87] hover:from-[#8b2fd4] hover:to-[#6b21a8] text-white text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg shadow-purple-950/40 cursor-pointer border border-purple-800/40 whitespace-nowrap"
+                className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-brand-600 to-brand-800 hover:from-brand-500 hover:to-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg shadow-brand-950/40 cursor-pointer border border-brand-800/40 whitespace-nowrap"
               >
                 {t('landing.navViewDemo')}
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -922,7 +922,7 @@ export default function Landing() {
                 onClick={() => setMenuOpen((open) => !open)}
                 aria-label={t('aria.openMenu')}
                 aria-expanded={menuOpen}
-                className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg border border-zinc-800 text-zinc-300 transition-colors hover:text-purple-300 hover:border-purple-900/60 cursor-pointer"
+                className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg border border-zinc-800 text-zinc-300 transition-colors hover:text-brand-300 hover:border-brand-900/60 cursor-pointer"
               >
                 {menuOpen ? <XIcon className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
@@ -938,27 +938,27 @@ export default function Landing() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={reduceMotion ? undefined : { opacity: 0, height: 0 }}
               transition={{ duration: reduceMotion ? 0 : 0.25, ease: 'easeInOut' }}
-              className="lg:hidden overflow-hidden bg-black/95 backdrop-blur-md border-b border-zinc-900"
+              className="lg:hidden overflow-hidden bg-zinc-950/95 backdrop-blur-md border-b border-zinc-900"
             >
               <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col gap-1 text-sm font-medium text-zinc-300">
                 <button
                   type="button"
                   onClick={() => { scrollToSection('features'); setMenuOpen(false); }}
-                  className="text-left py-2.5 hover:text-purple-300 transition-colors cursor-pointer"
+                  className="text-left py-2.5 hover:text-brand-300 transition-colors cursor-pointer"
                 >
                   {t('landing.navFeatures')}
                 </button>
                 <button
                   type="button"
                   onClick={() => { scrollToSection('pricing'); setMenuOpen(false); }}
-                  className="text-left py-2.5 hover:text-purple-300 transition-colors cursor-pointer"
+                  className="text-left py-2.5 hover:text-brand-300 transition-colors cursor-pointer"
                 >
                   {t('landing.navPricing')}
                 </button>
                 <button
                   type="button"
                   onClick={() => { scrollToSection('testimonials'); setMenuOpen(false); }}
-                  className="text-left py-2.5 hover:text-purple-300 transition-colors cursor-pointer"
+                  className="text-left py-2.5 hover:text-brand-300 transition-colors cursor-pointer"
                 >
                   {t('landing.navTestimonials')}
                 </button>
@@ -967,21 +967,21 @@ export default function Landing() {
                   <button
                     type="button"
                     onClick={() => { setLoginOpen(true); setMenuOpen(false); }}
-                    className="text-sm font-medium text-zinc-300 transition-colors hover:text-purple-300 cursor-pointer"
+                    className="text-sm font-medium text-zinc-300 transition-colors hover:text-brand-300 cursor-pointer"
                   >
                     {t('landing.navLogin')}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setSignupOpen(true); setMenuOpen(false); }}
-                    className="text-sm font-medium text-zinc-300 transition-colors hover:text-purple-300 cursor-pointer"
+                    className="text-sm font-medium text-zinc-300 transition-colors hover:text-brand-300 cursor-pointer"
                   >
                     {t('landing.navStartFree')}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setMenuOpen(false); navigate('/demo/dashboard'); }}
-                    className="sm:hidden inline-flex items-center gap-2 bg-gradient-to-r from-[#7e22ce] to-[#581c87] text-white text-sm font-medium px-4 py-2 rounded-lg border border-purple-800/40 cursor-pointer"
+                    className="sm:hidden inline-flex items-center gap-2 bg-gradient-to-r from-brand-600 to-brand-800 text-white text-sm font-medium px-4 py-2 rounded-lg border border-brand-800/40 cursor-pointer"
                   >
                     {t('landing.navViewDemo')}
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -1000,16 +1000,16 @@ export default function Landing() {
         <HeroDotGridCanvas />
 
         {/* Sutil halo de luz de fondo con toque morado oscuro elegante */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] md:w-[850px] h-[350px] md:h-[550px] bg-gradient-to-tr from-purple-950/25 via-zinc-900/10 to-transparent blur-[160px] rounded-full pointer-events-none -z-10" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] md:w-[850px] h-[350px] md:h-[550px] bg-gradient-to-tr from-brand-950/25 via-zinc-900/10 to-transparent blur-[160px] rounded-full pointer-events-none -z-10" />
 
         <div className="text-center max-w-4xl mx-auto relative z-10">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/90 border border-purple-950/60 text-xs font-medium text-purple-300 mb-8 shadow-inner shadow-purple-950/20 backdrop-blur-sm"
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/90 border border-brand-950/60 text-xs font-medium text-brand-300 mb-8 shadow-inner shadow-brand-950/20 backdrop-blur-sm"
           >
-            <Code2 className="w-3.5 h-3.5 text-purple-400" />
+            <Code2 className="w-3.5 h-3.5 text-brand-400" />
             <span>{t('landing.heroBadge')}</span>
           </motion.div>
 
@@ -1031,11 +1031,11 @@ export default function Landing() {
             className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <motion.button 
-              whileHover={{ scale: 1.04, y: -2, boxShadow: "0 0 28px rgba(139, 47, 212, 0.6)" }}
+              whileHover={{ scale: 1.04, y: -2, boxShadow: "0 0 28px rgba(147, 51, 234, 0.6)" }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
               onClick={() => navigate('/demo/dashboard')}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#7e22ce] to-[#581c87] hover:from-[#8b2fd4] hover:to-[#6b21a8] text-white font-medium px-6 py-3 rounded-lg transition-all shadow-xl shadow-purple-950/50 hover:shadow-purple-900/70 text-sm cursor-pointer border border-purple-800/40"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-brand-600 to-brand-800 hover:from-brand-500 hover:to-brand-700 text-white font-medium px-6 py-3 rounded-lg transition-all shadow-xl shadow-brand-950/50 hover:shadow-brand-900/70 text-sm cursor-pointer border border-brand-800/40"
             >
               {t('landing.heroCtaDemo')}
               <ArrowRight className="w-4 h-4" />
@@ -1046,7 +1046,7 @@ export default function Landing() {
               whileTap={{ scale: 0.96 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
               onClick={() => setSignupOpen(true)}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-medium px-6 py-3 rounded-lg transition-all border border-purple-950/40 text-sm cursor-pointer shadow-md"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-medium px-6 py-3 rounded-lg transition-all border border-brand-950/40 text-sm cursor-pointer shadow-md"
             >
               {t('landing.heroCtaStart')}
             </motion.button>
@@ -1064,17 +1064,17 @@ export default function Landing() {
           <motion.div 
             animate={{ y: [0, -8, 0] }}
             transition={{ repeat: Infinity, duration: 6.5, ease: "easeInOut" }}
-            className="absolute inset-x-0 mx-auto w-full max-w-5xl bg-zinc-900/95 border border-purple-950/50 rounded-xl p-3 sm:p-4 shadow-2xl shadow-purple-950/25 backdrop-blur-xl z-10"
+            className="absolute inset-x-0 mx-auto w-full max-w-5xl bg-zinc-900/95 border border-brand-950/50 rounded-xl p-3 sm:p-4 shadow-2xl shadow-brand-950/25 backdrop-blur-xl z-10"
           >
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-4 px-2">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
                 <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
                 <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
-                <span className="ml-2 text-xs font-mono text-zinc-500">{t('landing.mockupUrl')}</span>
+                <span className="ml-2 text-xs font-mono text-zinc-400">{t('landing.mockupUrl')}</span>
               </div>
-              <span className="text-[11px] text-purple-300 bg-purple-950/50 px-2 py-0.5 rounded border border-purple-900/40 flex items-center gap-1.5">
-                <Activity className="w-3 h-3 text-purple-400" /> {t('landing.mockupIsolated')}
+              <span className="text-[11px] text-brand-300 bg-brand-950/50 px-2 py-0.5 rounded border border-brand-900/40 flex items-center gap-1.5">
+                <Activity className="w-3 h-3 text-brand-400" /> {t('landing.mockupIsolated')}
               </span>
             </div>
             
@@ -1088,7 +1088,7 @@ export default function Landing() {
           <motion.div 
             animate={{ y: [0, 8, 0] }}
             transition={{ repeat: Infinity, duration: 7, ease: "easeInOut", delay: 1 }}
-            className="absolute right-2 sm:right-6 lg:right-12 top-28 sm:top-36 w-64 sm:w-80 bg-zinc-950/95 border border-purple-950/60 rounded-xl p-4 shadow-2xl shadow-purple-950/35 z-20 hidden lg:block backdrop-blur-md"
+            className="absolute right-2 sm:right-6 lg:right-12 top-28 sm:top-36 w-64 sm:w-80 bg-zinc-950/95 border border-brand-950/60 rounded-xl p-4 shadow-2xl shadow-brand-950/35 z-20 hidden lg:block backdrop-blur-md"
           >
             <div className="text-xs font-semibold text-zinc-200 mb-2 flex items-center justify-between">
               <span>{t('landing.mockupTransactions')}</span>
@@ -1101,7 +1101,7 @@ export default function Landing() {
           <motion.div 
             animate={{ y: [0, -6, 0] }}
             transition={{ repeat: Infinity, duration: 6.5, ease: "easeInOut", delay: 0.5 }}
-            className="absolute left-2 sm:left-6 lg:left-12 bottom-2 sm:bottom-6 w-60 sm:w-72 bg-zinc-950/95 border border-purple-950/60 rounded-xl p-4 shadow-2xl shadow-purple-950/35 z-20 hidden lg:block backdrop-blur-md"
+            className="absolute left-2 sm:left-6 lg:left-12 bottom-2 sm:bottom-6 w-60 sm:w-72 bg-zinc-950/95 border border-brand-950/60 rounded-xl p-4 shadow-2xl shadow-brand-950/35 z-20 hidden lg:block backdrop-blur-md"
           >
             <div className="text-xs font-semibold text-zinc-200 mb-1">{t('landing.mockupCatalogTitle')}</div>
             <p className="text-[11px] text-zinc-400 mb-2">{t('landing.mockupCatalogDescription')}</p>
@@ -1119,7 +1119,7 @@ export default function Landing() {
           transition={{ duration: 1.0, ease: "easeOut" }}
           className="text-center max-w-3xl mx-auto mb-16"
         >
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-3">{t('landing.featuresEyebrow')}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-brand-400 mb-3">{t('landing.featuresEyebrow')}</h2>
           <h3 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
             {t('landing.featuresTitle')}
           </h3>
@@ -1136,9 +1136,9 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.9, delay: 0.1, ease: "easeOut" }}
-            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-900/60 transition-all group shadow-sm hover:shadow-purple-950/30"
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-brand-900/60 transition-all group shadow-sm hover:shadow-brand-950/30"
           >
-            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-brand-950/60 flex items-center justify-center text-brand-400 mb-4 group-hover:scale-105 transition-transform">
               <Users className="w-5 h-5" />
             </div>
             <h4 className="text-base font-semibold text-white mb-2">{t('landing.featureClientsTitle')}</h4>
@@ -1153,9 +1153,9 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.9, delay: 0.2, ease: "easeOut" }}
-            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-900/60 transition-all group shadow-sm hover:shadow-purple-950/30"
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-brand-900/60 transition-all group shadow-sm hover:shadow-brand-950/30"
           >
-            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-brand-950/60 flex items-center justify-center text-brand-400 mb-4 group-hover:scale-105 transition-transform">
               <Package className="w-5 h-5" />
             </div>
             <h4 className="text-base font-semibold text-white mb-2">{t('landing.featureStockTitle')}</h4>
@@ -1170,9 +1170,9 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}
-            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-900/60 transition-all group shadow-sm hover:shadow-purple-950/30"
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-brand-900/60 transition-all group shadow-sm hover:shadow-brand-950/30"
           >
-            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-brand-950/60 flex items-center justify-center text-brand-400 mb-4 group-hover:scale-105 transition-transform">
               <ShoppingCart className="w-5 h-5" />
             </div>
             <h4 className="text-base font-semibold text-white mb-2">{t('landing.featureSalesTitle')}</h4>
@@ -1187,9 +1187,9 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.9, delay: 0.4, ease: "easeOut" }}
-            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-900/60 transition-all group shadow-sm hover:shadow-purple-950/30"
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-brand-900/60 transition-all group shadow-sm hover:shadow-brand-950/30"
           >
-            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-brand-950/60 flex items-center justify-center text-brand-400 mb-4 group-hover:scale-105 transition-transform">
               <BarChart3 className="w-5 h-5" />
             </div>
             <h4 className="text-base font-semibold text-white mb-2">{t('landing.featureReportsTitle')}</h4>
@@ -1210,7 +1210,7 @@ export default function Landing() {
           transition={{ duration: 1.0, ease: "easeOut" }}
           className="text-center max-w-3xl mx-auto mb-16"
         >
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-3">{t('landing.pricingEyebrow')}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-brand-400 mb-3">{t('landing.pricingEyebrow')}</h2>
           <h3 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
             {t('landing.pricingTitle')}
           </h3>
@@ -1231,7 +1231,7 @@ export default function Landing() {
           >
             <div>
               <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">{t('landing.planStarterName')}</div>
-              <div className="text-3xl font-bold text-white mb-3">19 € <span className="text-xs font-normal text-zinc-500">{t('landing.pricePerMonth')}</span></div>
+              <div className="text-3xl font-bold text-white mb-3">19 € <span className="text-xs font-normal text-zinc-400">{t('landing.pricePerMonth')}</span></div>
               <p className="text-xs sm:text-sm text-zinc-400 mb-6">{t('landing.planStarterDescription')}</p>
               
               <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-300 mb-8">
@@ -1242,10 +1242,10 @@ export default function Landing() {
             </div>
             
             <motion.button 
-              whileHover={{ scale: 1.03, boxShadow: "0 0 18px rgba(139, 47, 212, 0.45)" }}
+              whileHover={{ scale: 1.03, boxShadow: "0 0 18px rgba(147, 51, 234, 0.45)" }}
               whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/demo/dashboard')}
-              className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs border border-purple-950/60 cursor-pointer shadow-sm"
+              className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs border border-brand-950/60 cursor-pointer shadow-sm"
             >
               {t('landing.planTryDemo')}
             </motion.button>
@@ -1257,13 +1257,13 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.9, delay: 0.2, ease: "easeOut" }}
-            className="p-8 rounded-2xl bg-gradient-to-b from-[#24113c] via-zinc-900 to-zinc-950 border border-[#581c87]/60 flex flex-col justify-between relative shadow-2xl shadow-purple-950/30"
+            className="p-8 rounded-2xl bg-gradient-to-b from-brand-950 via-zinc-900 to-zinc-950 border border-brand-900/60 flex flex-col justify-between relative shadow-2xl shadow-brand-950/30"
           >
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#581c87] text-purple-200 text-[10px] font-semibold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-md border border-purple-500/30">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-900 text-brand-200 text-[10px] font-semibold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-md border border-brand-500/30">
               {t('landing.planProBadge')}
             </div>
             <div>
-              <div className="text-xs font-semibold text-purple-300 uppercase tracking-wider mb-2">{t('landing.planProName')}</div>
+              <div className="text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">{t('landing.planProName')}</div>
               <div className="text-3xl font-bold text-white mb-3">49 € <span className="text-xs font-normal text-zinc-400">{t('landing.pricePerMonth')}</span></div>
               <p className="text-xs sm:text-sm text-zinc-300 mb-6">{t('landing.planProDescription')}</p>
               
@@ -1276,11 +1276,11 @@ export default function Landing() {
             </div>
             
             <motion.button 
-              whileHover={{ scale: 1.04, y: -1, boxShadow: "0 0 24px rgba(139, 47, 212, 0.55)" }}
+              whileHover={{ scale: 1.04, y: -1, boxShadow: "0 0 24px rgba(147, 51, 234, 0.55)" }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
               onClick={() => navigate('/demo/dashboard')}
-              className="w-full bg-gradient-to-r from-[#7e22ce] to-[#581c87] hover:from-[#8b2fd4] hover:to-[#6b21a8] text-white font-medium py-2.5 rounded-lg transition-all text-xs shadow-lg shadow-purple-950/50 cursor-pointer border border-purple-500/30"
+              className="w-full bg-gradient-to-r from-brand-600 to-brand-800 hover:from-brand-500 hover:to-brand-700 text-white font-medium py-2.5 rounded-lg transition-all text-xs shadow-lg shadow-brand-950/50 cursor-pointer border border-brand-500/30"
             >
               {t('landing.planTryDemo')}
             </motion.button>
@@ -1296,7 +1296,7 @@ export default function Landing() {
           >
             <div>
               <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">{t('landing.planEnterpriseName')}</div>
-              <div className="text-3xl font-bold text-white mb-3">99 € <span className="text-xs font-normal text-zinc-500">{t('landing.pricePerMonth')}</span></div>
+              <div className="text-3xl font-bold text-white mb-3">99 € <span className="text-xs font-normal text-zinc-400">{t('landing.pricePerMonth')}</span></div>
               <p className="text-xs sm:text-sm text-zinc-400 mb-6">{t('landing.planEnterpriseDescription')}</p>
               
               <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-300 mb-8">
@@ -1307,10 +1307,10 @@ export default function Landing() {
             </div>
             
             <motion.button 
-              whileHover={{ scale: 1.03, boxShadow: "0 0 18px rgba(139, 47, 212, 0.45)" }}
+              whileHover={{ scale: 1.03, boxShadow: "0 0 18px rgba(147, 51, 234, 0.45)" }}
               whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/demo/dashboard')}
-              className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs border border-purple-950/60 cursor-pointer shadow-sm"
+              className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium py-2.5 rounded-lg transition-all text-xs border border-brand-950/60 cursor-pointer shadow-sm"
             >
               {t('landing.planTryDemo')}
             </motion.button>
@@ -1328,7 +1328,7 @@ export default function Landing() {
           transition={{ duration: 1.0, ease: "easeOut" }}
           className="text-center max-w-3xl mx-auto mb-16"
         >
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-3">{t('landing.testimonialsEyebrow')}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-brand-400 mb-3">{t('landing.testimonialsEyebrow')}</h2>
           <h3 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
             {t('landing.testimonialsTitle')}
           </h3>
@@ -1341,18 +1341,18 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.9, delay: 0.1, ease: "easeOut" }}
-            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-950/60 transition-all"
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-brand-950/60 transition-all"
           >
             <p className="text-xs sm:text-sm text-zinc-300 mb-6 leading-relaxed">
               "{t('landing.testimonial1Text')}"
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-purple-950 border border-purple-800 text-purple-300 font-semibold flex items-center justify-center text-xs">
+              <div className="w-8 h-8 rounded-full bg-brand-950 border border-brand-800 text-brand-300 font-semibold flex items-center justify-center text-xs">
                 CR
               </div>
               <div>
                 <div className="text-xs font-semibold text-white">{t('landing.testimonial1Name')}</div>
-                <div className="text-[11px] text-zinc-500">{t('landing.testimonial1Role')}</div>
+                <div className="text-[11px] text-zinc-400">{t('landing.testimonial1Role')}</div>
               </div>
             </div>
           </motion.div>
@@ -1362,18 +1362,18 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.9, delay: 0.2, ease: "easeOut" }}
-            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-950/60 transition-all"
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-brand-950/60 transition-all"
           >
             <p className="text-xs sm:text-sm text-zinc-300 mb-6 leading-relaxed">
               "{t('landing.testimonial2Text')}"
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-purple-950 border border-purple-800 text-purple-300 font-semibold flex items-center justify-center text-xs">
+              <div className="w-8 h-8 rounded-full bg-brand-950 border border-brand-800 text-brand-300 font-semibold flex items-center justify-center text-xs">
                 LM
               </div>
               <div>
                 <div className="text-xs font-semibold text-white">{t('landing.testimonial2Name')}</div>
-                <div className="text-[11px] text-zinc-500">{t('landing.testimonial2Role')}</div>
+                <div className="text-[11px] text-zinc-400">{t('landing.testimonial2Role')}</div>
               </div>
             </div>
           </motion.div>
@@ -1383,18 +1383,18 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}
-            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-purple-950/60 transition-all"
+            className="p-6 rounded-xl bg-zinc-950 border border-zinc-900 hover:border-brand-950/60 transition-all"
           >
             <p className="text-xs sm:text-sm text-zinc-300 mb-6 leading-relaxed">
               "{t('landing.testimonial3Text')}"
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-purple-950 border border-purple-800 text-purple-300 font-semibold flex items-center justify-center text-xs">
+              <div className="w-8 h-8 rounded-full bg-brand-950 border border-brand-800 text-brand-300 font-semibold flex items-center justify-center text-xs">
                 AG
               </div>
               <div>
                 <div className="text-xs font-semibold text-white">{t('landing.testimonial3Name')}</div>
-                <div className="text-[11px] text-zinc-500">{t('landing.testimonial3Role')}</div>
+                <div className="text-[11px] text-zinc-400">{t('landing.testimonial3Role')}</div>
               </div>
             </div>
           </motion.div>
@@ -1411,7 +1411,7 @@ export default function Landing() {
           transition={{ duration: 1.0, ease: "easeOut" }}
           className="text-center max-w-3xl mx-auto mb-14"
         >
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-3">{t('landing.compareEyebrow')}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-brand-400 mb-3">{t('landing.compareEyebrow')}</h2>
           <h3 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
             {t('landing.compareTitle')}
           </h3>
@@ -1432,7 +1432,7 @@ export default function Landing() {
                   <th className="px-5 py-4 font-medium">{t('landing.compareColFeature')}</th>
                   <th className="px-4 py-4 text-center font-medium">{t('landing.compareColExcel')}</th>
                   <th className="px-4 py-4 text-center font-medium">{t('landing.compareColOther')}</th>
-                  <th className="px-4 py-4 text-center font-semibold text-purple-300">{t('landing.compareColFlow')}</th>
+                  <th className="px-4 py-4 text-center font-semibold text-brand-300">{t('landing.compareColFlow')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-900">
@@ -1448,7 +1448,7 @@ export default function Landing() {
                     <td className="px-5 py-3.5">{t(labelKey)}</td>
                     <td className="px-4 py-3.5 text-center"><CompareMark value={excel} /></td>
                     <td className="px-4 py-3.5 text-center"><CompareMark value={other} /></td>
-                    <td className="bg-purple-950/20 px-4 py-3.5 text-center"><CompareMark value={flow} highlight /></td>
+                    <td className="bg-brand-950/20 px-4 py-3.5 text-center"><CompareMark value={flow} highlight /></td>
                   </tr>
                 ))}
               </tbody>
@@ -1466,7 +1466,7 @@ export default function Landing() {
           transition={{ duration: 1.0, ease: "easeOut" }}
           className="text-center mb-12"
         >
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-3">{t('landing.faqEyebrow')}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-brand-400 mb-3">{t('landing.faqEyebrow')}</h2>
           <h3 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
             {t('landing.faqTitle')}
           </h3>
@@ -1478,9 +1478,9 @@ export default function Landing() {
       {/* FOOTER */}
       <footer id="site-footer" className="border-t border-zinc-900">
         <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col gap-6">
-          <div className="flex flex-col items-center justify-between gap-4 text-xs text-zinc-500 sm:flex-row">
+          <div className="flex flex-col items-center justify-between gap-4 text-xs text-zinc-400 sm:flex-row">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-zinc-900 border border-purple-950/60 flex items-center justify-center text-purple-400">
+              <div className="w-6 h-6 rounded bg-zinc-900 border border-brand-950/60 flex items-center justify-center text-brand-400">
                 <BarChart3 className="w-3.5 h-3.5" />
               </div>
               <span className="font-medium text-zinc-300">FlowMetrics</span>
@@ -1490,30 +1490,30 @@ export default function Landing() {
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
               <button 
                 onClick={goToDemo}
-                className="hover:text-purple-300 transition-colors cursor-pointer"
+                className="hover:text-brand-300 transition-colors cursor-pointer"
               >
                 {t('landing.footerDemo')}
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('features')}
-                className="hover:text-purple-300 transition-colors cursor-pointer"
+                className="hover:text-brand-300 transition-colors cursor-pointer"
               >
                 {t('landing.footerFeatures')}
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('pricing')}
-                className="hover:text-purple-300 transition-colors cursor-pointer"
+                className="hover:text-brand-300 transition-colors cursor-pointer"
               >
                 {t('landing.footerPricing')}
               </button>
-              <Link to="/privacidad" className="hover:text-purple-300 transition-colors">{t('landing.footerLegalPrivacy')}</Link>
-              <Link to="/terminos" className="hover:text-purple-300 transition-colors">{t('landing.footerLegalTerms')}</Link>
-              <Link to="/cookies" className="hover:text-purple-300 transition-colors">{t('landing.footerLegalCookies')}</Link>
+              <Link to="/privacidad" className="hover:text-brand-300 transition-colors">{t('landing.footerLegalPrivacy')}</Link>
+              <Link to="/terminos" className="hover:text-brand-300 transition-colors">{t('landing.footerLegalTerms')}</Link>
+              <Link to="/cookies" className="hover:text-brand-300 transition-colors">{t('landing.footerLegalCookies')}</Link>
             </div>
           </div>
-          <p className="text-center text-[11px] text-zinc-600 sm:text-left">
+          <p className="text-center text-[11px] text-zinc-500 sm:text-left">
             {t('landing.footerSimulatedNote')}
           </p>
         </div>

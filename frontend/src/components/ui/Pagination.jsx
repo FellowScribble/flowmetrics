@@ -23,7 +23,7 @@ export default function Pagination({ page, pages, onChange, className }) {
         <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         {t('common.prevPage')}
       </button>
-      <span className="text-xs text-zinc-500">{t('common.pageOf', { page, pages })}</span>
+      <span className="text-xs text-zinc-400">{t('common.pageOf', { page, pages })}</span>
       <button
         type="button"
         onClick={() => onChange(page + 1)}

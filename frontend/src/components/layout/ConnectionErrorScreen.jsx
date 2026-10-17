@@ -38,10 +38,10 @@ export default function ConnectionErrorScreen({ error, errorKind, onRetry }) {
           {t('connection.failedTitle')}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-zinc-400">{t(messageKey)}</p>
-        <p className="mt-2 text-xs text-zinc-500">{t('connection.retryHint')}</p>
+        <p className="mt-2 text-xs text-zinc-400">{t('connection.retryHint')}</p>
 
         {detail && (
-          <p className="mt-3 break-all font-mono text-[11px] text-zinc-600">
+          <p className="mt-3 break-all font-mono text-[11px] text-zinc-500">
             {t('connection.failedDetail', { detail })}
           </p>
         )}

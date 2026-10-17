@@ -83,7 +83,7 @@ function Field({ icon: Icon, label, error, children }) {
       <span className="mb-1 block text-xs font-medium text-zinc-300">{label}</span>
       <span className="relative block">
         {Icon && (
-          <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
         )}
         {children}
       </span>
@@ -93,7 +93,7 @@ function Field({ icon: Icon, label, error, children }) {
 }
 
 const inputClass =
-  'w-full rounded-lg border border-zinc-800 bg-zinc-900 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-zinc-600 transition-colors focus:border-brand-600 focus:outline-none';
+  'w-full rounded-lg border border-zinc-800 bg-zinc-900 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-zinc-500 transition-colors focus:border-brand-600 focus:outline-none';
 
 export default function SignupWizardModal({ open, onClose, onEnterDemo }) {
   const { t } = useLanguage();
@@ -209,7 +209,7 @@ export default function SignupWizardModal({ open, onClose, onEnterDemo }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ duration: reduceMotion ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-purple-900/50 bg-zinc-950 shadow-2xl shadow-purple-950/40"
+            className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-brand-900/50 bg-zinc-950 shadow-2xl shadow-brand-950/40"
           >
             <button
               type="button"
@@ -240,19 +240,19 @@ export default function SignupWizardModal({ open, onClose, onEnterDemo }) {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={onEnterDemo}
-                  className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-purple-800/40 bg-gradient-to-r from-[#7e22ce] to-[#581c87] px-6 py-3 text-sm font-medium text-white shadow-lg shadow-purple-950/50 transition-colors hover:from-[#8b2fd4] hover:to-[#6b21a8]"
+                  className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-brand-800/40 bg-gradient-to-r from-brand-600 to-brand-800 px-6 py-3 text-sm font-medium text-white shadow-lg shadow-brand-950/50 transition-colors hover:from-brand-500 hover:to-brand-700"
                 >
                   {t('landing.wizardSuccessCta')}
                   <ArrowRight className="h-4 w-4" />
                 </motion.button>
-                <p className="mt-4 text-[11px] text-zinc-500">
+                <p className="mt-4 text-[11px] text-zinc-400">
                   {t('landing.wizardSimulatedNote')}
                 </p>
               </div>
             ) : (
               <form onSubmit={submit} className="flex flex-col">
                 <div className="border-b border-zinc-900 px-6 pb-5 pt-6 sm:px-8">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-900/40 bg-purple-950/30 px-2.5 py-0.5 text-[11px] font-medium text-purple-300">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-900/40 bg-brand-950/30 px-2.5 py-0.5 text-[11px] font-medium text-brand-300">
                     <Sparkles className="h-3 w-3" />
                     {t('landing.modalEyebrow')}
                   </span>
@@ -272,7 +272,7 @@ export default function SignupWizardModal({ open, onClose, onEnterDemo }) {
                                 'flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold transition-colors',
                                 isActive && 'bg-brand-600 text-white',
                                 isDone && 'bg-emerald-600 text-white',
-                                !isActive && !isDone && 'bg-zinc-800 text-zinc-500',
+                                !isActive && !isDone && 'bg-zinc-800 text-zinc-400',
                               )}
                             >
                               {isDone ? <Check className="h-3 w-3" /> : stepNumber}
@@ -280,7 +280,7 @@ export default function SignupWizardModal({ open, onClose, onEnterDemo }) {
                             <span
                               className={cn(
                                 'text-xs font-medium',
-                                isActive ? 'text-zinc-100' : 'text-zinc-500',
+                                isActive ? 'text-zinc-100' : 'text-zinc-400',
                               )}
                             >
                               {label}
@@ -360,7 +360,7 @@ export default function SignupWizardModal({ open, onClose, onEnterDemo }) {
                                   style={{ width: strengthWidth }}
                                 />
                               </div>
-                              <p className="mt-1.5 text-[11px] text-zinc-500">
+                              <p className="mt-1.5 text-[11px] text-zinc-400">
                                 {t('landing.wizardPasswordHint')} ·{' '}
                                 <span className="text-zinc-400">{strengthLabel}</span>
                               </p>
@@ -423,7 +423,7 @@ export default function SignupWizardModal({ open, onClose, onEnterDemo }) {
 
                       {step === 3 && (
                         <>
-                          <p className="text-xs text-zinc-500">{t('landing.wizardPlanSubtitle')}</p>
+                          <p className="text-xs text-zinc-400">{t('landing.wizardPlanSubtitle')}</p>
                           <div className="space-y-2.5">
                             {PLANS.map((plan) => {
                               const selected = form.plan === plan.value;
@@ -455,13 +455,13 @@ export default function SignupWizardModal({ open, onClose, onEnterDemo }) {
                                         {t(plan.nameKey)}
                                       </span>
                                       {plan.recommended && (
-                                        <span className="rounded-full bg-purple-950/70 px-2 py-0.5 text-[10px] font-medium text-purple-300">
+                                        <span className="rounded-full bg-brand-950/70 px-2 py-0.5 text-[10px] font-medium text-brand-300">
                                           {t('landing.planProBadge')}
                                         </span>
                                       )}
                                       <span className="ml-auto text-sm font-semibold text-white">
                                         {plan.price}
-                                        <span className="text-[11px] font-normal text-zinc-500">
+                                        <span className="text-[11px] font-normal text-zinc-400">
                                           {t('landing.pricePerMonth')}
                                         </span>
                                       </span>
@@ -499,7 +499,7 @@ export default function SignupWizardModal({ open, onClose, onEnterDemo }) {
                       {t('landing.wizardBack')}
                     </button>
                   ) : (
-                    <span className="text-[11px] text-zinc-500">
+                    <span className="text-[11px] text-zinc-400">
                       {t('landing.wizardSteps', { step, total: 3 })}
                     </span>
                   )}
@@ -509,7 +509,7 @@ export default function SignupWizardModal({ open, onClose, onEnterDemo }) {
                     whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={status === 'loading'}
-                    className="inline-flex items-center gap-2 rounded-lg border border-purple-800/40 bg-gradient-to-r from-[#7e22ce] to-[#581c87] px-4 py-2 text-xs font-medium text-white shadow-lg shadow-purple-950/50 transition-colors hover:from-[#8b2fd4] hover:to-[#6b21a8] disabled:opacity-70"
+                    className="inline-flex items-center gap-2 rounded-lg border border-brand-800/40 bg-gradient-to-r from-brand-600 to-brand-800 px-4 py-2 text-xs font-medium text-white shadow-lg shadow-brand-950/50 transition-colors hover:from-brand-500 hover:to-brand-700 disabled:opacity-70"
                   >
                     {status === 'loading' ? (
                       <>
@@ -525,8 +525,8 @@ export default function SignupWizardModal({ open, onClose, onEnterDemo }) {
                   </motion.button>
                 </div>
 
-                <p className="flex items-center justify-center gap-1.5 border-t border-zinc-900 bg-zinc-950/80 py-2.5 text-[11px] text-zinc-500">
-                  <ShieldCheck className="h-3 w-3 text-purple-400" />
+                <p className="flex items-center justify-center gap-1.5 border-t border-zinc-900 bg-zinc-950/80 py-2.5 text-[11px] text-zinc-400">
+                  <ShieldCheck className="h-3 w-3 text-brand-400" />
                   {t('landing.wizardSimulatedNote')}
                 </p>
               </form>

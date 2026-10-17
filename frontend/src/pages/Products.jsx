@@ -385,7 +385,7 @@ function Products() {
                           type="button"
                           onClick={() => handleEdit(product)}
                           aria-label={t('aria.editProduct')}
-                          className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-brand-400"
+                          className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-brand-400"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
