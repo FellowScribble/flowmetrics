@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { Plus, Pencil, Trash2, ShoppingCart, X } from 'lucide-react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Plus, Pencil, Trash2, ShoppingCart, X, Search } from 'lucide-react';
 import { getSales, createSale, updateSale, deleteSale } from '../api/sales';
 import { getCustomers } from '../api/customers';
 import { getProducts } from '../api/products';
@@ -12,11 +12,17 @@ import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import PageHeader from '../components/ui/PageHeader';
+import TableToolbar from '../components/ui/TableToolbar';
+import Pagination from '../components/ui/Pagination';
 import { useToast } from '../components/ui/toast/useToast';
 import { useConfirm } from '../components/ui/confirm/useConfirm';
 import { useAsyncData } from '../lib/useAsyncData';
 import { useFormat } from '../lib/useFormat';
+import { isBlank, isPositiveInteger } from '../lib/validation';
+import { cn } from '../lib/cn';
 import { useLanguage } from '../i18n/useLanguage';
+
+const PAGE_SIZE = 10;
 
 const emptyItem = { productId: '', quantity: 1 };
 
@@ -28,6 +34,11 @@ function Sales() {
   const [paymentStatus, setPaymentStatus] = useState('PAID');
   const [status, setStatus] = useState('COMPLETED');
   const [items, setItems] = useState([emptyItem]);
+  const [formError, setFormError] = useState(null);
+  const [itemErrors, setItemErrors] = useState([]);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const formRef = useRef(null);
 
   const toast = useToast();
   const confirm = useConfirm();
@@ -42,14 +53,44 @@ function Sales() {
     ]);
     return { sales, customers, products };
   }, []);
-  const { data, loading, error, refresh, retry } = useAsyncData(loadSales);
+  const { data, loading, error, hasData, refresh, refreshError, retry } =
+    useAsyncData(loadSales);
 
-  const products = data?.products ?? [];
+  const products = useMemo(() => data?.products ?? [], [data]);
+  const sales = useMemo(() => data?.sales ?? [], [data]);
+  const customers = useMemo(() => data?.customers ?? [], [data]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return sales;
+    return sales.filter((sale) => {
+      const customerName =
+        customers.find((customer) => customer.id === sale.customerId)?.name ?? '';
+      const productNames = sale.items.map((item) => item.productName).join(' ');
+      return [customerName, sale.status, productNames, String(sale.total)]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q));
+    });
+  }, [sales, customers, query]);
+
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pages);
+  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  function scrollToForm() {
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   function handleItemChange(index, field, value) {
     setItems((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+    setItemErrors((prev) => {
+      if (!prev[index]) return prev;
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: undefined };
       return updated;
     });
   }
@@ -60,6 +101,7 @@ function Sales() {
 
   function removeItemRow(index) {
     setItems((prev) => prev.filter((_, i) => i !== index));
+    setItemErrors((prev) => prev.filter((_, i) => i !== index));
   }
 
   function calculateEstimatedTotal() {
@@ -70,8 +112,40 @@ function Sales() {
     }, 0);
   }
 
+  function validate() {
+    const hasAnyItem = items.some((item) => !isBlank(item.productId));
+    const errors = items.map((item) => {
+      if (isBlank(item.productId)) {
+        return hasAnyItem ? { productId: t('validation.select') } : {};
+      }
+      if (!isPositiveInteger(item.quantity)) {
+        return { quantity: t('validation.quantity') };
+      }
+      return {};
+    });
+    return { hasAnyItem, errors };
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
+
+    const { hasAnyItem, errors } = validate();
+
+    if (!hasAnyItem) {
+      toast.error(t('sales.toastNoItems'));
+      return;
+    }
+
+    const hasItemErrors = errors.some((entry) => entry.productId || entry.quantity);
+    const customerError = isBlank(customerId) ? t('validation.select') : null;
+
+    setFormError(customerError);
+    setItemErrors(errors);
+
+    if (customerError || hasItemErrors) {
+      toast.error(t('validation.fixErrors'));
+      return;
+    }
 
     const payload = {
       customerId: Number(customerId),
@@ -86,11 +160,6 @@ function Sales() {
           quantity: Number(item.quantity),
         })),
     };
-
-    if (payload.items.length === 0) {
-      toast.error(t('sales.toastNoItems'));
-      return;
-    }
 
     setSaving(true);
     try {
@@ -122,7 +191,14 @@ function Sales() {
     setPaymentStatus('PAID');
     setStatus('COMPLETED');
     setItems([emptyItem]);
+    setItemErrors([]);
+    setFormError(null);
     setEditingId(null);
+  }
+
+  function handleNew() {
+    resetForm();
+    scrollToForm();
   }
 
   function handleEdit(sale) {
@@ -138,8 +214,10 @@ function Sales() {
           }))
         : [emptyItem],
     );
+    setItemErrors([]);
+    setFormError(null);
     setEditingId(sale.id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToForm();
   }
 
   async function handleDelete(sale) {
@@ -170,23 +248,38 @@ function Sales() {
     );
   }
 
-  if (error) return <ErrorState onRetry={retry} />;
-
-  const { sales, customers } = data;
+  if (error && !hasData) return <ErrorState onRetry={retry} />;
 
   return (
     <div>
-      <PageHeader title={t('sales.title')} description={t('sales.description')} />
+      <PageHeader
+        title={t('sales.title')}
+        description={t('sales.description')}
+        actions={
+          <Button onClick={handleNew}>
+            <Plus className="h-4 w-4" />
+            {t('sales.formNew')}
+          </Button>
+        }
+      />
+
+      {refreshError && (
+        <ErrorState variant="inline" className="mb-6" onRetry={refresh} />
+      )}
 
       <Card className="mb-6 p-5">
         <h2 className="mb-4 text-sm font-semibold text-zinc-100">
           {editingId ? t('sales.formEdit') : t('sales.formNew')}
         </h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Select
+            label={t('sales.colCustomer')}
             value={customerId}
-            onChange={(event) => setCustomerId(event.target.value)}
-            required
+            onChange={(event) => {
+              setCustomerId(event.target.value);
+              setFormError(null);
+            }}
+            error={formError}
           >
             <option value="">{t('sales.selectCustomer')}</option>
             {customers.map((customer) => (
@@ -197,81 +290,85 @@ function Sales() {
           </Select>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
-              {t('sales.paymentMethodLabel')}
-              <Select
-                value={paymentMethod}
-                onChange={(event) => setPaymentMethod(event.target.value)}
-              >
-                <option value="CARD">{tEnum('enums.paymentMethod', 'CARD')}</option>
-                <option value="CASH">{tEnum('enums.paymentMethod', 'CASH')}</option>
-                <option value="TRANSFER">{tEnum('enums.paymentMethod', 'TRANSFER')}</option>
-              </Select>
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
-              {t('sales.paymentStatusLabel')}
-              <Select
-                value={paymentStatus}
-                onChange={(event) => setPaymentStatus(event.target.value)}
-              >
-                <option value="PAID">{tEnum('enums.paymentStatus', 'PAID')}</option>
-                <option value="PENDING">{tEnum('enums.paymentStatus', 'PENDING')}</option>
-              </Select>
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
-              {t('sales.statusLabel')}
-              <Select value={status} onChange={(event) => setStatus(event.target.value)}>
-                <option value="COMPLETED">{tEnum('enums.saleStatus', 'COMPLETED')}</option>
-                <option value="PENDING">{tEnum('enums.saleStatus', 'PENDING')}</option>
-                <option value="CANCELLED">{tEnum('enums.saleStatus', 'CANCELLED')}</option>
-              </Select>
-            </label>
+            <Select
+              label={t('sales.paymentMethodLabel')}
+              value={paymentMethod}
+              onChange={(event) => setPaymentMethod(event.target.value)}
+            >
+              <option value="CARD">{tEnum('enums.paymentMethod', 'CARD')}</option>
+              <option value="CASH">{tEnum('enums.paymentMethod', 'CASH')}</option>
+              <option value="TRANSFER">{tEnum('enums.paymentMethod', 'TRANSFER')}</option>
+            </Select>
+            <Select
+              label={t('sales.paymentStatusLabel')}
+              value={paymentStatus}
+              onChange={(event) => setPaymentStatus(event.target.value)}
+            >
+              <option value="PAID">{tEnum('enums.paymentStatus', 'PAID')}</option>
+              <option value="PENDING">{tEnum('enums.paymentStatus', 'PENDING')}</option>
+            </Select>
+            <Select
+              label={t('sales.statusLabel')}
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+            >
+              <option value="COMPLETED">{tEnum('enums.saleStatus', 'COMPLETED')}</option>
+              <option value="PENDING">{tEnum('enums.saleStatus', 'PENDING')}</option>
+              <option value="CANCELLED">{tEnum('enums.saleStatus', 'CANCELLED')}</option>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-2">
             <span className="text-xs font-medium text-zinc-400">{t('sales.productsLabel')}</span>
 
-            {items.map((item, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Select
-                  value={item.productId}
-                  onChange={(event) =>
-                    handleItemChange(index, 'productId', event.target.value)
-                  }
-                  className="flex-1"
-                  required
-                >
-                  <option value="">{t('sales.selectProduct')}</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name} ({currency(product.salePrice)})
-                    </option>
-                  ))}
-                </Select>
+            {items.map((item, index) => {
+              const entry = itemErrors[index] ?? {};
+              const rowMessage = entry.productId || entry.quantity;
+              return (
+                <div key={index} className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={item.productId}
+                      onChange={(event) =>
+                        handleItemChange(index, 'productId', event.target.value)
+                      }
+                      className="flex-1"
+                      error={Boolean(entry.productId)}
+                    >
+                      <option value="">{t('sales.selectProduct')}</option>
+                      {products.map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {product.name} ({currency(product.salePrice)})
+                        </option>
+                      ))}
+                    </Select>
 
-                <Input
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(event) =>
-                    handleItemChange(index, 'quantity', event.target.value)
-                  }
-                  className="w-24"
-                  required
-                />
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(event) =>
+                        handleItemChange(index, 'quantity', event.target.value)
+                      }
+                      className="w-24"
+                      error={Boolean(entry.quantity)}
+                    />
 
-                {items.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeItemRow(index)}
-                    aria-label={t('aria.removeProduct')}
-                    className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-red-950/50 hover:text-red-400"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            ))}
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeItemRow(index)}
+                        aria-label={t('aria.removeProduct')}
+                        className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-red-950/50 hover:text-red-400"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  {rowMessage && <p className="text-xs text-red-400">{rowMessage}</p>}
+                </div>
+              );
+            })}
 
             <button
               type="button"
@@ -305,11 +402,36 @@ function Sales() {
           icon={ShoppingCart}
           title={t('sales.emptyTitle')}
           description={t('sales.emptyDescription')}
+          action={
+            <Button onClick={handleNew}>
+              <Plus className="h-4 w-4" />
+              {t('sales.formNew')}
+            </Button>
+          }
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title={t('common.noResultsTitle')}
+          description={t('common.noResultsDescription', { query: query.trim() })}
+          action={
+            <Button variant="secondary" onClick={() => setQuery('')}>
+              {t('common.clearSearch')}
+            </Button>
+          }
         />
       ) : (
         <Card className="overflow-hidden">
+          <div className="border-b border-zinc-800 p-4">
+            <TableToolbar
+              query={query}
+              onQueryChange={setQuery}
+              shown={pageItems.length}
+              total={filtered.length}
+            />
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="demo-table w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-800 bg-zinc-950/60 text-xs uppercase tracking-wide text-zinc-400">
                   <th className="px-4 py-3">{t('sales.colDate')}</th>
@@ -321,10 +443,16 @@ function Sales() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
-                {sales.map((sale) => {
+                {pageItems.map((sale) => {
                   const statusInfo = saleStatus(sale.status);
                   return (
-                    <tr key={sale.id} className="align-top text-zinc-300 hover:bg-zinc-800/50">
+                    <tr
+                      key={sale.id}
+                      className={cn(
+                        'align-top text-zinc-300 hover:bg-zinc-800/50',
+                        editingId === sale.id && 'bg-brand-950/50',
+                      )}
+                    >
                       <td className="whitespace-nowrap px-4 py-3">
                         {date(sale.saleDate)}
                       </td>
@@ -353,7 +481,7 @@ function Sales() {
                             type="button"
                             onClick={() => handleEdit(sale)}
                             aria-label={t('aria.editSale')}
-                            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-brand-400"
+                            className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-brand-400"
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
@@ -361,7 +489,7 @@ function Sales() {
                             type="button"
                             onClick={() => handleDelete(sale)}
                             aria-label={t('aria.deleteSale')}
-                            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-950/50 hover:text-red-400"
+                            className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-red-950/50 hover:text-red-400"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -373,6 +501,7 @@ function Sales() {
               </tbody>
             </table>
           </div>
+          <Pagination page={currentPage} pages={pages} onChange={setPage} />
         </Card>
       )}
     </div>

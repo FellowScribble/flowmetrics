@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Categories from './pages/Categories';
 import NotFound from './pages/NotFound';
+import LegalPage from './pages/legal/LegalPage';
 
 function App() {
   return (
@@ -22,6 +23,10 @@ function App() {
           <ConfirmProvider>
             <Routes>
               <Route path="/" element={<Landing />} />
+
+              <Route path="/privacidad" element={<LegalPage type="privacy" />} />
+              <Route path="/terminos" element={<LegalPage type="terms" />} />
+              <Route path="/cookies" element={<LegalPage type="cookies" />} />
 
               <Route
                 path="/demo"

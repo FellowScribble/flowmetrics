@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { Plus, Pencil, Trash2, Package } from 'lucide-react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Plus, Pencil, Trash2, Package, Search } from 'lucide-react';
 import { getProducts, createProduct, updateProduct, deleteProduct } from '../api/products';
 import { getCategories } from '../api/categories';
 import Button from '../components/ui/Button';
@@ -11,11 +11,21 @@ import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import PageHeader from '../components/ui/PageHeader';
+import TableToolbar from '../components/ui/TableToolbar';
+import Pagination from '../components/ui/Pagination';
 import { useToast } from '../components/ui/toast/useToast';
 import { useConfirm } from '../components/ui/confirm/useConfirm';
 import { useAsyncData } from '../lib/useAsyncData';
 import { useFormat } from '../lib/useFormat';
+import {
+  isBlank,
+  isNonNegativeNumber,
+  isNonNegativeInteger,
+} from '../lib/validation';
+import { cn } from '../lib/cn';
 import { useLanguage } from '../i18n/useLanguage';
+
+const PAGE_SIZE = 10;
 
 const emptyForm = {
   categoryId: '',
@@ -31,6 +41,10 @@ function Products() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const formRef = useRef(null);
 
   const toast = useToast();
   const confirm = useConfirm();
@@ -41,15 +55,60 @@ function Products() {
     const [products, categories] = await Promise.all([getProducts(), getCategories()]);
     return { products, categories };
   }, []);
-  const { data, loading, error, refresh, retry } = useAsyncData(loadProducts);
+  const { data, loading, error, hasData, refresh, refreshError, retry } =
+    useAsyncData(loadProducts);
+
+  const products = useMemo(() => data?.products ?? [], [data]);
+  const categories = useMemo(() => data?.categories ?? [], [data]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((product) => {
+      const categoryName =
+        categories.find((category) => category.id === product.categoryId)?.name ?? '';
+      return [product.name, categoryName]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q));
+    });
+  }, [products, categories, query]);
+
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pages);
+  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  function scrollToForm() {
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   function handleChange(event) {
     const { name, value, type, checked } = event.target;
     setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setFieldErrors((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
+  }
+
+  function validate() {
+    const errors = {};
+    if (isBlank(form.categoryId)) errors.categoryId = t('validation.select');
+    if (isBlank(form.name)) errors.name = t('validation.required');
+    if (!isNonNegativeNumber(form.salePrice)) errors.salePrice = t('validation.nonNegative');
+    if (!isNonNegativeNumber(form.costPrice)) errors.costPrice = t('validation.nonNegative');
+    if (!isNonNegativeInteger(form.stock)) errors.stock = t('validation.nonNegativeInteger');
+    if (!isNonNegativeInteger(form.minimumStock))
+      errors.minimumStock = t('validation.nonNegativeInteger');
+    return errors;
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    const errors = validate();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error(t('validation.fixErrors'));
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
@@ -82,6 +141,12 @@ function Products() {
   function resetForm() {
     setForm(emptyForm);
     setEditingId(null);
+    setFieldErrors({});
+  }
+
+  function handleNew() {
+    resetForm();
+    scrollToForm();
   }
 
   function handleEdit(product) {
@@ -95,6 +160,8 @@ function Products() {
       isActive: product.isActive,
     });
     setEditingId(product.id);
+    setFieldErrors({});
+    scrollToForm();
   }
 
   async function handleDelete(product) {
@@ -129,20 +196,41 @@ function Products() {
     );
   }
 
-  if (error) return <ErrorState onRetry={retry} />;
-
-  const { products, categories } = data;
+  if (error && !hasData) return <ErrorState onRetry={retry} />;
 
   return (
     <div>
-      <PageHeader title={t('products.title')} description={t('products.description')} />
+      <PageHeader
+        title={t('products.title')}
+        description={t('products.description')}
+        actions={
+          <Button onClick={handleNew}>
+            <Plus className="h-4 w-4" />
+            {t('products.formNew')}
+          </Button>
+        }
+      />
+
+      {refreshError && (
+        <ErrorState variant="inline" className="mb-6" onRetry={refresh} />
+      )}
 
       <Card className="mb-6 p-5">
         <h2 className="mb-4 text-sm font-semibold text-zinc-100">
           {editingId ? t('products.formEdit') : t('products.formNew')}
         </h2>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Select name="categoryId" value={form.categoryId} onChange={handleChange} required>
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+        >
+          <Select
+            name="categoryId"
+            label={t('products.colCategory')}
+            value={form.categoryId}
+            onChange={handleChange}
+            error={fieldErrors.categoryId}
+          >
             <option value="">{t('products.selectCategory')}</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
@@ -152,46 +240,51 @@ function Products() {
           </Select>
           <Input
             name="name"
+            label={t('products.placeholderName')}
             placeholder={t('products.placeholderName')}
             value={form.name}
             onChange={handleChange}
-            required
+            error={fieldErrors.name}
           />
           <Input
             name="salePrice"
             type="number"
             step="0.01"
+            label={t('products.placeholderSalePrice')}
             placeholder={t('products.placeholderSalePrice')}
             value={form.salePrice}
             onChange={handleChange}
-            required
+            error={fieldErrors.salePrice}
           />
           <Input
             name="costPrice"
             type="number"
             step="0.01"
+            label={t('products.placeholderCostPrice')}
             placeholder={t('products.placeholderCostPrice')}
             value={form.costPrice}
             onChange={handleChange}
-            required
+            error={fieldErrors.costPrice}
           />
           <Input
             name="stock"
             type="number"
+            label={t('products.placeholderStock')}
             placeholder={t('products.placeholderStock')}
             value={form.stock}
             onChange={handleChange}
-            required
+            error={fieldErrors.stock}
           />
           <Input
             name="minimumStock"
             type="number"
+            label={t('products.placeholderMinimumStock')}
             placeholder={t('products.placeholderMinimumStock')}
             value={form.minimumStock}
             onChange={handleChange}
-            required
+            error={fieldErrors.minimumStock}
           />
-          <label className="flex items-center gap-2 text-sm text-zinc-400">
+          <label className="flex items-center gap-2 text-sm text-zinc-400 sm:self-end sm:pb-2">
             <input
               type="checkbox"
               name="isActive"
@@ -221,11 +314,36 @@ function Products() {
           icon={Package}
           title={t('products.emptyTitle')}
           description={t('products.emptyDescription')}
+          action={
+            <Button onClick={handleNew}>
+              <Plus className="h-4 w-4" />
+              {t('products.formNew')}
+            </Button>
+          }
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title={t('common.noResultsTitle')}
+          description={t('common.noResultsDescription', { query: query.trim() })}
+          action={
+            <Button variant="secondary" onClick={() => setQuery('')}>
+              {t('common.clearSearch')}
+            </Button>
+          }
         />
       ) : (
         <Card className="overflow-hidden">
+          <div className="border-b border-zinc-800 p-4">
+            <TableToolbar
+              query={query}
+              onQueryChange={setQuery}
+              shown={pageItems.length}
+              total={filtered.length}
+            />
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="demo-table w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-800 bg-zinc-950/60 text-xs uppercase tracking-wide text-zinc-400">
                   <th className="px-4 py-3">{t('products.colName')}</th>
@@ -236,8 +354,14 @@ function Products() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
-                {products.map((product) => (
-                  <tr key={product.id} className="text-zinc-300 hover:bg-zinc-800/50">
+                {pageItems.map((product) => (
+                  <tr
+                    key={product.id}
+                    className={cn(
+                      'text-zinc-300 hover:bg-zinc-800/50',
+                      editingId === product.id && 'bg-brand-950/50',
+                    )}
+                  >
                     <td className="px-4 py-3 font-medium text-zinc-100">
                       {product.name}
                     </td>
@@ -261,7 +385,7 @@ function Products() {
                           type="button"
                           onClick={() => handleEdit(product)}
                           aria-label={t('aria.editProduct')}
-                          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-brand-400"
+                          className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-brand-400"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
@@ -269,7 +393,7 @@ function Products() {
                           type="button"
                           onClick={() => handleDelete(product)}
                           aria-label={t('aria.deleteProduct')}
-                          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-950/50 hover:text-red-400"
+                          className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-red-950/50 hover:text-red-400"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -280,6 +404,7 @@ function Products() {
               </tbody>
             </table>
           </div>
+          <Pagination page={currentPage} pages={pages} onChange={setPage} />
         </Card>
       )}
     </div>

@@ -8,7 +8,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { RefreshCw } from 'lucide-react';
 import { getTopProducts, getSalesByMonth } from '../api/reports';
+import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
@@ -39,7 +41,8 @@ function Reports() {
     return { topProducts, monthlySales };
   }, []);
 
-  const { data, loading, error, retry } = useAsyncData(loadReports);
+  const { data, loading, error, hasData, refresh, refreshError, retry } =
+    useAsyncData(loadReports);
 
   if (loading) {
     return (
@@ -51,13 +54,26 @@ function Reports() {
     );
   }
 
-  if (error) return <ErrorState onRetry={retry} />;
+  if (error && !hasData) return <ErrorState onRetry={retry} />;
 
   const { topProducts, monthlySales } = data;
 
   return (
     <div>
-      <PageHeader title={t('reports.title')} description={t('reports.description')} />
+      <PageHeader
+        title={t('reports.title')}
+        description={t('reports.description')}
+        actions={
+          <Button variant="secondary" onClick={refresh}>
+            <RefreshCw className="h-4 w-4" />
+            {t('common.refresh')}
+          </Button>
+        }
+      />
+
+      {refreshError && (
+        <ErrorState variant="inline" className="mb-6" onRetry={refresh} />
+      )}
 
       <Card className="mb-8 p-5">
         <h2 className="mb-4 text-lg font-semibold text-zinc-100">
@@ -100,7 +116,7 @@ function Reports() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="demo-table w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-800 text-xs uppercase tracking-wide text-zinc-400">
                   <th className="py-2 pr-4">{t('reports.colRank')}</th>
