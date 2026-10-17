@@ -101,8 +101,7 @@ ejecutada con resultado registrado) y **VF** (comportamiento verificado en runti
   sesiones demo A/B/plantilla, IDOR → 404, protección de la plantilla, limpieza con respeto de FKs,
   flujo de ventas crear → editar → borrar y validación del panel de sesión.
 
-Pendiente de verificar (no afirmado como hecho): build de la imagen Docker y despliegue real
-(ver [Despliegue](docs/despliegue.md)).
+Despliegue: https://flowmetrics-weld.vercel.app/
 
 ## Metodología
 
